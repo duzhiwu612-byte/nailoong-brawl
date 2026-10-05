@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>像素级截图验证</title></head>
+<body>
+<script>
+  /* 对比两张选人界面截图在"卡片0"区域的色彩丰富度：
+     AI 立绘（照片级渲染）→ 量化色数多；代码绘制回退版（平涂+描边）→ 色数少。 */
+  function countColors(img, label) {
+    try {
+      var c = document.createElement('canvas');
+      c.width = 1280; c.height = 720;
+      var x = c.getContext('2d');
+      x.drawImage(img, 0, 0);
+      var d = x.getImageData(90, 110, 240, 240).data;
+      var set = {};
+      for (var i = 0; i < d.length; i += 4) {
+        var k = ((d[i] >> 4) << 8) | ((d[i + 1] >> 4) << 4) | (d[i + 2] >> 4);
+        set[k] = 1;
+      }
+      console.log('[PIX] ' + label + ' unique=' + Object.keys(set).length);
+    } catch (e) {
+      console.log('[PIX] ' + label + ' ERR ' + e.message);
+    }
+  }
+  var pend = 2;
+  function done() { pend--; if (!pend) console.log('[PIX] DONE'); }
+  function load(src, label) {
+    var im = new Image();
+    im.onload = function () { countColors(im, label); done(); };
+    im.onerror = function () { console.log('[PIX] ' + label + ' LOADFAIL'); done(); };
+    im.src = src;
+  }
+  load('../预览截图/2_选人界面.png', 'select_new');
+  load('_baseline.png', 'select_fallback');
+</script>
+</body>
+</html>

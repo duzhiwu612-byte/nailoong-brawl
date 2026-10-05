@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>奶娃九形态 · 原画 vs 建模 对比</title>
+<style>
+  html,body{margin:0;background:#FFFFFF;font-family:'Microsoft YaHei',sans-serif;}
+  canvas{display:block;}
+</style>
+</head>
+<body>
+<canvas id="cv" width="2100" height="2500"></canvas>
+<script src="../js/util.js"></script>
+<script src="../js/render.js"></script>
+<script src="../js/characters.js"></script>
+<script>
+(function(){
+  // 九形态，按九宫格顺序
+  var IDS = ['loving','dark','rage','war','nailoong','void','tender','divine','sad'];
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  NL.GROUND = 99999;   // 把地面挪走 → 隐藏影子，方便像素对比
+
+  var loaded = 0;
+  var imgs = {};
+  IDS.forEach(function(id){
+    var im = new Image();
+    im.onload = im.onerror = function(){ loaded++; };
+    im.src = '原版素材/bili/cut/' + id + '_src.png';
+    imgs[id] = im;
+  });
+
+  function label(txt, x, y, size, color){
+    ctx.fillStyle = color || '#5A4318';
+    ctx.font = 'bold ' + size + 'px "Microsoft YaHei"';
+    ctx.textAlign = 'center';
+    ctx.fillText(txt, x, y);
+  }
+
+  function drawAll(){
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    label('奶娃九形态 · 原画 vs 对局建模（上=原画，下=代码建模 idle）', cv.width/2, 74, 44);
+
+    var M=40, TOP=140, CW=660, CH=760, GX=20, GY=20;
+    IDS.forEach(function(id, i){
+      var r = Math.floor(i/3), c = i%3;
+      var x0 = M + c*(CW+GX), y0 = TOP + r*(CH+GY);
+      var ch = NL.chars[id];
+      // 单元边框
+      ctx.strokeStyle = '#5A4318'; ctx.lineWidth = 4;
+      ctx.strokeRect(x0, y0, CW, CH);
+      // 上：原画（含透明背景，白色底）
+      var oi = imgs[id];
+      if (oi && oi.complete && oi.naturalWidth){
+        var sH = 330, sW = oi.naturalWidth * sH / oi.naturalHeight;
+        if (sW > 600){ sW = 600; sH = oi.naturalHeight * sW / oi.naturalWidth; }
+        ctx.drawImage(oi, x0 + CW/2 - sW/2, y0 + 14 + (330 - sH)/2, sW, sH);
+      }
+      // 分隔线
+      ctx.strokeStyle = '#D8C79A'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x0+16, y0+358); ctx.lineTo(x0+CW-16, y0+358); ctx.stroke();
+      // 下：代码建模（固定表：idle、朝右、无影子）
+      var f = {
+        char: ch, state: 'idle', stateTime: 0,
+        x: x0 + CW/2, y: y0 + 694,
+        facing: 1, seed: 20, vy: 0, flash: 0,
+        squash: {x: 1, y: 1},
+        drawScale: 1.55
+      };
+      NL.draw.fighter(ctx, f, 50);
+      // 名字条
+      label(ch.name + ' · ' + id, x0 + CW/2, y0 + 746, 30);
+    });
+  }
+
+  function tick(n){
+    drawAll();
+    if (n < 3) setTimeout(function(){ tick(n+1); }, 400);
+  }
+  (function waitAll(){
+    if (loaded >= IDS.length) tick(0);
+    else setTimeout(waitAll, 100);
+  })();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><title>立绘加载专项测试</title>
+<style>body{font-family:monospace;background:#111;color:#0f0;padding:20px;font-size:18px}</style>
+</head>
+<body>
+<pre id="out">loading...</pre>
+<canvas id="cv" width="300" height="300" style="border:2px solid #0f0"></canvas>
+<script>
+  var results = [];
+  var pending = 0;
+  function cb() {
+    pending--;
+    if (pending === 0) {
+      var txt = results.join('\n');
+      document.getElementById('out').textContent = txt;
+      console.log('[IMG] DONE ' + results.length + ' -> ' + results.join(' | '));
+      // 验证能否绘到 canvas 上（和游戏里 drawImage 一致）
+      var im = new Image();
+      im.onload = function () {
+        var c = document.getElementById('cv').getContext('2d');
+        c.drawImage(im, 0, 0, 300, 300);
+        console.log('[IMG] canvas draw OK');
+      };
+      im.onerror = function () { console.log('[IMG] canvas draw FAIL'); };
+      im.src = '../立绘/classic.jpg';
+    }
+  }
+  function t(label, src) {
+    pending++;
+    var im = new Image();
+    im.onload = function () { results.push(label + '=' + src + ' OK ' + im.width + 'x' + im.height); cb(); };
+    im.onerror = function () { results.push(label + '=' + src + ' FAIL'); cb(); };
+    im.src = src;
+  }
+  t('jpg', '../立绘/classic.jpg');
+  t('png404', '../立绘/classic.png');
+  t('webp404', '../立绘/classic.webp');
+</script>
+</body>
+</html>

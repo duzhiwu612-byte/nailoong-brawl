@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>奶龙大乱斗 - 触屏自检</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    html, body { margin: 0; padding: 0; background: #14100a; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="1280" height="720"></canvas>
+  <script>
+    window.__ERRORS__ = [];
+    window.onerror = function (msg, src, line, col) {
+      window.__ERRORS__.push(String(msg) + ' @' + String(src || '').split('/').pop() + ':' + line + ':' + col);
+    };
+  </script>
+  <script src="../js/util.js"></script>
+  <script src="../js/audio.js"></script>
+  <script src="../js/input.js"></script>
+  <script>
+    // 假 game：仅用于触屏场景显隐判断（不需要完整游戏栈）
+    window.NL.game = { scene: null, scenes: { battle: {} } };
+  </script>
+  <script src="../js/touch.js"></script>
+  <script>
+    (function () {
+      function log(s) { console.log('[TOUCHCHECK] ' + s); }
+      var pass = 0, fail = 0;
+      function ok(cond, name) {
+        if (cond) { pass++; log('PASS ' + name); }
+        else { fail++; log('FAIL ' + name); }
+      }
+      window.addEventListener('load', function () {
+        var UI = NL.touchUI;
+        var expectOn = !/touch=0/.test(location.search);
+
+        if (!expectOn) {
+          /* 桌面禁用态（?touch=0）：必须零介入 */
+          ok(!!(UI && UI.enabled === false), 'touchUI 关闭态');
+          ok(!document.getElementById('touchui'), '未注入虚拟按键 DOM');
+          ok(!document.querySelector('#connect, #rotate-tip, .tbtn'), '未注入任何触屏节点');
+          ok(!document.documentElement.classList.contains('touch-on'), '未启用 touch-on 根类');
+          log('errors=' + window.__ERRORS__.length);
+          log(fail === 0 ? ('ALL PASS ' + pass + '/' + (pass + fail)) : ('FAILED ' + fail + ' / ' + (pass + fail)));
+          return;
+        }
+
+        ok(!!(UI && UI.enabled === true), 'touchUI 已启用（需用 ?touch=1 打开本页）');
+
+        var btns = document.querySelectorAll('#touchui .tbtn');
+        ok(btns.length === 18, '虚拟按键总数=18（实际 ' + btns.length + '）');
+
+        function down(el, id) {
+          el.dispatchEvent(new PointerEvent('pointerdown', { pointerId: id || 11, bubbles: true, cancelable: true }));
+        }
+        function up(id) {
+          window.dispatchEvent(new PointerEvent('pointerup', { pointerId: id || 11, bubbles: true }));
+        }
+
+        // 攻击键 J
+        var jb = document.querySelector('#touchui [data-code="KeyJ"]');
+        ok(!!jb, '存在攻击键 J');
+        if (jb) {
+          down(jb);
+          ok(NL.Input.isDown('KeyJ'), '按下 J → isDown');
+          ok(NL.Input.consumePressed('KeyJ'), '按下 J → 产生边沿');
+          up();
+          ok(!NL.Input.isDown('KeyJ'), '抬起 J → 松开');
+        }
+
+        // 菜单确认键 Enter
+        var eb = document.querySelector('#touchui [data-code="Enter"]');
+        ok(!!eb, '存在菜单确认键');
+        if (eb) {
+          down(eb, 22);
+          ok(NL.Input.isDown('Enter'), '按下 Enter → isDown');
+          up(22);
+          ok(!NL.Input.isDown('Enter'), '抬起 Enter → 松开');
+        }
+
+        // 场景显隐：战斗 ↔ 菜单
+        NL.game.scene = NL.game.scenes.battle;
+        UI._refresh();
+        ok(document.getElementById('touchui').classList.contains('mode-battle'), '战斗场景 → 显示战斗按键');
+        NL.game.scene = null;
+        UI._refresh();
+        ok(document.getElementById('touchui').classList.contains('mode-menu'), '菜单场景 → 显示菜单按键');
+
+        // 双击 ◀ = 虚步（pDash）
+        NL.Input.clearEdges();
+        NL.Input.setKey('KeyA', true); NL.Input.poll();
+        NL.Input.setKey('KeyA', false); NL.Input.poll();
+        NL.Input.setKey('KeyA', true); NL.Input.poll();
+        ok(NL.Input.pstate[0].pDash === -1, '双击 ◀ 触发虚步 pDash=-1（实际 ' + NL.Input.pstate[0].pDash + '）');
+        NL.Input.setKey('KeyA', false); NL.Input.poll();
+
+        // 横屏提示节点
+        ok(!!document.getElementById('rotate-tip'), '横屏提示节点存在');
+
+        log('errors=' + window.__ERRORS__.length + (window.__ERRORS__.length ? ' -> ' + window.__ERRORS__.join(' | ') : ''));
+        log(fail === 0 ? ('ALL PASS ' + pass + '/' + (pass + fail)) : ('FAILED ' + fail + ' / ' + (pass + fail)));
+      });
+    })();
+  </script>
+</body>
+</html>

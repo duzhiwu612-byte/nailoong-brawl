@@ -1,0 +1,10 @@
+# 开发环境/工作目录（不进仓库）
+.venv-gfx/
+立绘_AI备份/
+立绘_rolls/
+tools/原版素材/
+预览截图/
+__pycache__/
+*.pyc
+Thumbs.db
+.DS_Store

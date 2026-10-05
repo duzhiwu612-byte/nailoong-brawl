@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>奶龙大乱斗 - 浏览器自检</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #14100a; overflow: hidden; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <!-- 预加载立绘（让无头截图等图片就绪后再发生；游戏本体不依赖这些标签） -->
+  <div style="display:none">
+    <img src="../立绘/loving.png" alt=""><img src="../立绘/dark.png" alt="">
+    <img src="../立绘/rage.png" alt=""><img src="../立绘/war.png" alt="">
+    <img src="../立绘/nailoong.png" alt=""><img src="../立绘/void.png" alt="">
+    <img src="../立绘/tender.png" alt=""><img src="../立绘/divine.png" alt="">
+    <img src="../立绘/sad.png" alt="">
+  </div>
+  <canvas id="game" width="1280" height="720"></canvas>
+  <script>
+    window.__ERRORS__ = [];
+    window.onerror = function (msg, src, line, col) {
+      window.__ERRORS__.push(String(msg) + ' @' + String(src || '').split('/').pop() + ':' + line + ':' + col);
+    };
+  </script>
+  <script src="../js/util.js"></script>
+  <script src="../js/audio.js"></script>
+  <script src="../js/input.js"></script>
+  <script src="../js/effects.js"></script>
+  <script src="../js/render.js"></script>
+  <script src="../js/characters.js"></script>
+  <script src="../js/fighter.js"></script>
+  <script src="../js/ai.js"></script>
+  <script src="../js/stage.js"></script>
+  <script src="../js/battle.js"></script>
+  <script src="../js/main.js"></script>
+  <script src="../js/touch.js"></script>
+  <script>
+    (function () {
+      function log(s) { console.log('[BROWSERCHECK] ' + s); }
+      var target = (location.hash || '#battle').replace('#', '');
+
+      function afterBoot() {
+        // 等待游戏 boot 完成（场景注册）后再切换场景
+        if (!window.NL || !NL.game || !NL.game.scene || !NL.game.scenes.battle) {
+          setTimeout(afterBoot, 50);
+          return;
+        }
+        log('boot: NL.game ok');
+
+        if (target === 'battle') {
+          NL.game.pendingCfg = { mode: 'ai', difficulty: 1, p1: 'loving', p2: 'dark' };
+          NL.game.go('battle');
+          // 无头虚拟时间下 rAF 走得慢，直接快进战斗到"交上火"再截图
+          var b = NL.game.scenes.battle.battle;
+          var guard = 0;
+          while (guard < 2400 && !(b.phase === 'fight' && (b.p1.hp < 870 || b.p2.hp < 870))) {
+            b.update();
+            guard++;
+          }
+          log('fast-forward ticks=' + guard + ' phase=' + b.phase +
+            ' hp=' + Math.round(b.p1.hp) + '/' + Math.round(b.p2.hp));
+        } else if (target === 'select') {
+          NL.game.mode.type = 'ai';
+          NL.game.go('select');
+          log('charOrder=' + NL.charOrder.length + ' [' + NL.charOrder.join(',') + ']');
+          log('sad obj=' + (NL.chars.sad ? 'OK/' + NL.chars.sad.name : 'MISSING'));
+          try {
+            var _sd = NL.game.scenes.select.draw;
+            NL.game.scenes.select.draw = function (ctx) {
+              try { _sd.call(this, ctx); }
+              catch (e) { if (!window._selErr) { window._selErr = 1; log('SELECT DRAW ERROR: ' + (e && e.message)); } }
+            };
+          } catch (e2) { log('hook fail: ' + e2.message); }
+          (function () {
+            var last = -1;
+            setInterval(function () {
+              var ok = 0, tot = 0;
+              for (var pk in (NL.portraits || {})) {
+                tot++;
+                if (NL.portraits[pk] && NL.portraits[pk].ok) ok++;
+              }
+              if (ok !== last) { last = ok; log('portraits loaded ' + ok + '/' + tot); }
+            }, 1000);
+          })();
+        } else if (target === 'navtest') {
+          // 模拟真实键盘走一遍完整流程
+          var key = function (code) { window.dispatchEvent(new KeyboardEvent('keydown', { code: code })); };
+          var keyup = function (code) { window.dispatchEvent(new KeyboardEvent('keyup', { code: code })); };
+          NL.game.mode.type = 'ai';
+          NL.game.go('select');
+          var sc = NL.game.scenes.select;
+
+          key('Escape'); sc.update();
+          log('Esc 返回 -> ' + (NL.game.scene === NL.game.scenes.mode ? '模式选择 OK' : '异常!'));
+
+          NL.game.go('select');
+          sc = NL.game.scenes.select;
+
+          key('KeyD'); sc.update();
+          key('KeyD'); sc.update();
+          log('光标移动到 idx=' + sc.cursor[0] + '（时序浮动，仅供参考）');
+
+          key('KeyJ'); sc.update();
+          log('确认锁定角色: picks[0]=' + sc.picks[0] + ' 拦截提示=' + (sc.hintT > 0 ? '有' : '无'));
+
+          key('KeyA'); sc.update();
+          key('KeyA'); sc.update();
+          key('KeyJ'); sc.update();
+          log('正常确认: picks=' + JSON.stringify(sc.picks) +
+            ' 场景=' + (NL.game.scene === NL.game.scenes.battle ? 'battle OK' : '异常!'));
+          keyup('KeyA'); keyup('KeyD'); keyup('KeyJ');
+
+          var bs = NL.game.scenes.battle;
+          key('Escape'); bs.update();
+          log('Esc 暂停: paused=' + bs.battle.paused);
+          key('KeyJ'); bs.update();
+          log('按 J 菜单第一项(继续): paused=' + bs.battle.paused);
+          keyup('KeyJ');
+
+          var b = bs.battle;
+          for (var i = 0; i < 130; i++) b.update();
+          var x0 = b.p1.x;
+          key('KeyD');
+          for (var j = 0; j < 30; j++) b.update();
+          keyup('KeyD');
+          log('按住 D 30 帧: p1.x ' + Math.round(x0) + ' -> ' + Math.round(b.p1.x) + '（应增大）');
+          log('战斗状态: phase=' + b.phase + ' hp=' + Math.round(b.p1.hp) + '/' + Math.round(b.p2.hp));
+        } else if (target === 'gallery') {
+          // 全角色图鉴 + 轮廓连通性检查（验证"整体式造型"没有零件脱节）
+          var gctx = NL.game.ctx;
+          NL.game.scene = {
+            update: function () {},
+            draw: function (c) {
+              c.fillStyle = '#8FD0E8';
+              c.fillRect(0, 0, 1280, 720);
+              var sg = c.createLinearGradient(0, 560, 0, 720);
+              sg.addColorStop(0, '#8FE08A');
+              sg.addColorStop(1, '#57B862');
+              c.fillStyle = sg;
+              c.fillRect(0, 560, 1280, 160);
+              c.fillStyle = 'rgba(255,255,255,0.25)';
+              c.fillRect(0, 560, 1280, 3);
+              for (var i = 0; i < NL.charOrder.length; i++) {
+                var ch = NL.chars[NL.charOrder[i]];
+                var fake = {
+                  char: ch, x: 110 + i * 172, y: 592, facing: 1, state: 'idle', stateTime: 0,
+                  vy: -1, onGround: true, squash: { x: 1, y: 1 }, flash: 0,
+                  seed: i * 7 + 3, drawScale: 1.02
+                };
+                NL.draw.fighter(c, fake, performance.now() * 0.06);
+                c.fillStyle = '#3A2C14';
+                c.font = '900 20px "Microsoft YaHei", sans-serif';
+                c.textAlign = 'center';
+                c.textBaseline = 'middle';
+                c.fillText(ch.name, fake.x, 636);
+                c.font = '700 13px "Microsoft YaHei", sans-serif';
+                c.fillStyle = '#6A5A30';
+                c.fillText(ch.title, fake.x, 658);
+              }
+              c.fillStyle = '#3A2C14';
+              c.font = '900 30px "Microsoft YaHei", sans-serif';
+              c.textAlign = 'center';
+              c.fillText('《奶龙大乱斗》全角色图鉴', 640, 60);
+
+              if (!window.__galleryChecked) {
+                window.__galleryChecked = true;
+                try {
+                  for (var gi = 0; gi < NL.charOrder.length; gi++) {
+                    var gch = NL.chars[NL.charOrder[gi]];
+                    var off = document.createElement('canvas');
+                    off.width = 320; off.height = 460;
+                    var oc = off.getContext('2d');
+                    NL.draw.fighter(oc, {
+                      char: gch, x: 160, y: 420, facing: 1, state: 'idle', stateTime: 0,
+                      vy: -1, onGround: true, squash: { x: 1, y: 1 }, flash: 0, seed: 3, drawScale: 1.6
+                    }, 100);
+                    var img = oc.getImageData(0, 0, 320, 460).data;
+                    var W = 320, H = 460;
+                    var seen = new Uint8Array(W * H);
+                    var comps = [];
+                    for (var y0 = 0; y0 < H; y0++) {
+                      for (var x0 = 0; x0 < W; x0++) {
+                        var ii = y0 * W + x0;
+                        if (seen[ii] || img[ii * 4 + 3] <= 60) continue;
+                        var stack = [ii], size = 0;
+                        seen[ii] = 1;
+                        while (stack.length) {
+                          var cur = stack.pop();
+                          size++;
+                          var cxx = cur % W;
+                          var nbs = [cur - 1, cur + 1, cur - W, cur + W];
+                          if (cxx === 0) nbs[0] = -1;
+                          if (cxx === W - 1) nbs[1] = -1;
+                          for (var nb = 0; nb < 4; nb++) {
+                            var n2 = nbs[nb];
+                            if (n2 < 0 || n2 >= W * H || seen[n2]) continue;
+                            var nx = n2 % W, ny = (n2 / W) | 0;
+                            if (img[n2 * 4 + 3] <= 60) continue;
+                            seen[n2] = 1;
+                            stack.push(n2);
+                          }
+                        }
+                        comps.push(size);
+                      }
+                    }
+                    comps.sort(function (a, b) { return b - a; });
+                    log('轮廓检查[' + gch.name + ']: 组件数=' + comps.length + ' 前3=' + comps.slice(0, 3).join(','));
+                  }
+                } catch (e) { log('轮廓检查失败: ' + e.message); }
+              }
+            }
+          };
+        } else if (target === 'arena') {
+          // 大地图 + z轴多层平台全景：两人站左右高台，相机拉远展示全场地
+          NL.game.pendingCfg = { mode: '2p', p1: 'war', p2: 'divine' };
+          NL.game.go('battle');
+          var ab = NL.game.scenes.battle.battle;
+          for (var ai = 0; ai < 130; ai++) ab.update();
+          ab.p1.x = -150; ab.p1.y = 435; ab.p1.onGround = true;
+          ab.p2.x = 1430; ab.p2.y = 435; ab.p2.onGround = true;
+          for (var aj = 0; aj < 80; aj++) ab.update();
+          log('arena: cam=' + ab.cam.x.toFixed(0) + ',' + ab.cam.s.toFixed(2) + ' plats=' + (NL.PLATFORMS || []).length +
+            ' p1y=' + Math.round(ab.p1.y) + ' p2y=' + Math.round(ab.p2.y));
+        } else if (target === 'dash') {
+          // 虚步+残影展示：冲刺到一半定格截图
+          NL.game.pendingCfg = { mode: '2p', p1: 'tender', p2: 'sad' };
+          NL.game.go('battle');
+          var db = NL.game.scenes.battle.battle;
+          for (var di = 0; di < 130; di++) db.update();
+          db.p1.x = 330; db.p2.x = 900;
+          db.p1.startDash(1);
+          for (var dj = 0; dj < 5; dj++) db.update();
+          NL.game.scenes.battle.update = function () {};   // 定格，方便截图
+          log('dash: state=' + db.p1.state + ' ghosts=' + db.p1.ghosts.length +
+            ' invuln=' + db.p1.invuln + ' x=' + Math.round(db.p1.x));
+        } else if (target === 'mode') {
+          NL.game.go('mode');
+        } else {
+          NL.game.go('title');
+        }
+        log('scene -> ' + target);
+
+        setTimeout(function () {
+          var b = NL.game.scenes.battle && NL.game.scenes.battle.battle;
+          if (target === 'battle' && b) {
+            log('battle: phase=' + b.phase + ' time=' + b.time +
+              ' hp=' + Math.round(b.p1.hp) + '/' + Math.round(b.p2.hp) +
+              ' wins=' + JSON.stringify(b.wins) + ' round=' + b.round);
+          }
+          log('errors=' + window.__ERRORS__.length +
+            (window.__ERRORS__.length ? ' -> ' + window.__ERRORS__.join(' | ') : ''));
+          var pok = 0, ptot = 0;
+          for (var pk2 in (NL.portraits || {})) {
+            ptot++;
+            if (NL.portraits[pk2] && NL.portraits[pk2].ok) pok++;
+          }
+          log('final portraits ' + pok + '/' + ptot);
+          log('DONE');
+        }, 6000);
+      }
+      afterBoot();
+    })();
+  </script>
+</body>
+</html>
