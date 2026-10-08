@@ -621,7 +621,8 @@ var NL = window.NL = window.NL || {};
     }
     NL.SFX.play('swing');
     NL.FX.cue(this.x + dir * 48 * S, this.y - 100 * S,
-      sp.type === 'minion' ? 'poof' : (sp.type === 'note' ? 'note' : 'flame'), dir);
+      (sp.type === 'minion' || sp.type === 'phone' || sp.type === 'phonespin') ? 'poof'
+        : (sp.type === 'note' ? 'note' : 'flame'), dir);
   };
 
   NL.Fighter = Fighter;

@@ -87,7 +87,14 @@ const MOVE_KEYS = ['light1', 'light2', 'light3', 'light4', 'light5', 'heavy', 'a
 // ============ 1. 角色 & 招式数据 ============
 console.log('\n== 角色 & 招式数据 ==');
 check('共 9 种奶娃形态，全部可玩', NL.charOrder.length === 9 && NL.charOrder.every(id => NL.chars[id].playable));
-check('彩蛋角色「看笑了」：可玩 + 与奶龙模式共用招式', !!(NL.chars.xiaole && NL.chars.xiaole.playable && NL.chars.xiaole.moves === NL.chars.nailoong.moves));
+check('彩蛋角色「看笑了」：可玩 + 远程弹道全换手机（奶龙原招式不受影响）', !!(NL.chars.xiaole && NL.chars.xiaole.playable &&
+  NL.chars.xiaole.moves.heavy.spawn.type === 'phone' &&
+  NL.chars.xiaole.moves.skill2.spawn.type === 'phonespin' &&
+  NL.chars.xiaole.moves.super.spawn.type === 'phone' &&
+  NL.chars.nailoong.moves.heavy.spawn.type === 'milkbottle' &&
+  NL.chars.nailoong.moves.skill2.spawn.type === 'pacifier' &&
+  NL.chars.nailoong.moves.super.spawn.type === 'milkbottle' &&
+  Object.keys(NL.chars.xiaole.moves).length === Object.keys(NL.chars.nailoong.moves).length));
 check('彩蛋角色不在九宫格 charOrder 中（独立竖卡）', NL.charOrder.indexOf(NL.bonusId) === -1 && NL.bonusId === 'xiaole');
 check('九形态齐备（慈爱/暗黑/愤怒/战斗/奶龙/空虚/温柔/神龙/忧郁）',
   NL.charOrder.join(',') === 'loving,dark,rage,war,nailoong,void,tender,divine,sad' && !!NL.chars.sad.moves.super);
@@ -102,7 +109,7 @@ check('全部 ' + ALL_IDS.length + ' 角色都有胜利宣言', ALL_IDS.every(id
 check('「看笑了」的宣言就是「看笑了」', NL.chars.xiaole.winQuote === '看笑了');
 
 let moveCount = 0, dataErr = [];
-for (const id of NL.charOrder) {
+for (const id of NL.charOrder.concat([NL.bonusId])) {
   const ch = NL.chars[id];
   const mv = ch.moves;
   if (!mv) { dataErr.push(id + ': 无招式表'); continue; }
@@ -359,17 +366,17 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
 })();
 (function () {
   let bad = [];
-  for (const id of NL.charOrder) {
+  for (const id of NL.charOrder.concat([NL.bonusId])) {
     const m = NL.chars[id].moves;
     if (!(m.heavy && m.heavy.nohit && m.heavy.spawn)) bad.push(id + '.K');
     if (!(m.skill2 && m.skill2.nohit && m.skill2.spawn)) bad.push(id + '.U');
   }
-  check('9 种形态 K/U 全部为远程投射', bad.length === 0, bad.join(','));
+  check('10 个角色（含看笑了）K/U 全部为远程投射', bad.length === 0, bad.join(','));
 })();
 (function () {
   // 每个角色的远程重击在中距离（380px）都能命中对手
   let bad = [];
-  for (const id of NL.charOrder) {
+  for (const id of NL.charOrder.concat([NL.bonusId])) {
     const bb = new NL.Battle({ mode: '2p', p1: id, p2: 'nailoong' });
     for (let i = 0; i < 120; i++) bb.update();
     bb.p1.x = 300; bb.p2.x = 680;
@@ -378,13 +385,13 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
     for (let i = 0; i < 150; i++) bb.update();
     if (bb.p2.hp >= hp0) bad.push(id);
   }
-  check('9 种形态 K 远程重击 380px 距离均能命中', bad.length === 0, bad.join(','));
+  check('10 个角色（含看笑了·手机）K 远程重击 380px 距离均能命中', bad.length === 0, bad.join(','));
 })();
 (function () {
   // 每个形态的专属弹道都能生成、飞行并绘制
   const pairs = [['loving', 'heart'], ['dark', 'darkorb'], ['rage', 'flame'], ['war', 'blade'],
     ['nailoong', 'milkbottle'], ['nailoong', 'pacifier'], ['void', 'voidorb'], ['tender', 'petal'],
-    ['divine', 'goldwave'], ['sad', 'tear']];
+    ['divine', 'goldwave'], ['sad', 'tear'], ['xiaole', 'phone'], ['xiaole', 'phonespin']];
   let errs = [];
   for (const [cid, type] of pairs) {
     try {
@@ -395,14 +402,14 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
       for (let i = 0; i < 160; i++) { bb.update(); if (i % 20 === 0) bb.draw(actx); }
     } catch (e) { errs.push(type + ':' + e.message); }
   }
-  check('10 种形态专属弹道生成/飞行/绘制无异常', errs.length === 0, errs.join(' | '));
+  check('12 种专属弹道（含手机/回旋手机）生成/飞行/绘制无异常', errs.length === 0, errs.join(' | '));
 })();
 
 // ============ 9. 全角色 × 全招式 冒烟 ============
 console.log('\n== 全角色全招式冒烟 ==');
 let smokeErr = [];
 let testedMoves = 0;
-for (const id of NL.charOrder) {
+for (const id of NL.charOrder.concat([NL.bonusId])) {
   const ch = NL.chars[id];
   for (const key in ch.moves) {
     testedMoves++;
@@ -486,7 +493,7 @@ try {
     ff.state = s; ff.stateTime = 10;
     NL.draw.fighter(actx, ff, 123);
   }
-  for (const id of NL.charOrder) {
+  for (const id of NL.charOrder.concat([NL.bonusId])) {
     const ch = NL.chars[id];
     for (const key in ch.moves) {
       const ff = bb.p1;

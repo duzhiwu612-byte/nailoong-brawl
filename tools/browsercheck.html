@@ -279,6 +279,20 @@
           log('winquote2: phase=' + wb2.phase + ' matchOver=' + wb2.matchOver +
             ' sub=[' + (wb2.announce ? wb2.announce.sub : '') + ']');
           NL.game.scenes.battle.update = function () {};       // 定格，方便截图
+        } else if (target === 'phones') {
+          // 看笑了扔手机：K 直抛 + U 回旋手机，定格截屏
+          NL.game.pendingCfg = { mode: '2p', p1: 'xiaole', p2: 'loving' };
+          NL.game.go('battle');
+          var pb = NL.game.scenes.battle.battle;
+          for (var pi2 = 0; pi2 < 130; pi2++) pb.update();
+          pb.p1.x = 360; pb.p2.x = 1120;
+          pb.p1.startAttack('heavy');
+          for (var pj2 = 0; pj2 < 16; pj2++) pb.update();
+          pb.spawnProjectile({ type: 'phonespin', x: 640, y: NL.GROUND - 150, dir: 1, vy: -130, owner: pb.p1 });
+          for (var pk2 = 0; pk2 < 14; pk2++) pb.update();
+          var pl = pb.projectiles.map(function (q) { return q.type + '@' + Math.round(q.x) + ',' + Math.round(q.y); });
+          log('phones: projs=[' + pl.join(' | ') + '] n=' + pl.length);
+          NL.game.scenes.battle.update = function () {};       // 定格，方便截图
         } else if (target === 'mode') {
           NL.game.go('mode');
         } else {

@@ -555,6 +555,20 @@ var NL = window.NL = window.NL || {};
     stats: { maxHp: 1500, walk: 335, back: 295, jump: 875, jump2: 805, dash: 645, weight: 0.9 },
     moves: null
   };
-  chars.xiaole.moves = chars.nailoong.moves;   // 身体就是奶龙模式：共用同一套招式
+  /* 身体是奶龙模式——近战同款，但远程投掷物全部换成手机（v0.9.1） */
+  chars.xiaole.moves = (function () {
+    var src = chars.nailoong.moves, out = {};
+    for (var k in src) {
+      var m = out[k] = {};
+      for (var f in src[k]) m[f] = src[k][f];
+    }
+    out.heavy.label = '气得扔手机';
+    out.heavy.spawn = { at: 12, type: 'phone', count: 1 };
+    out.skill2.label = '回旋手机';
+    out.skill2.spawn = { at: 10, type: 'phonespin', count: 1 };
+    out.super.label = '天降手机雨';
+    out.super.spawn = { at: 22, type: 'phone', count: 6, spread: 150 };
+    return out;
+  })();
   NL.bonusId = 'xiaole';
 })();

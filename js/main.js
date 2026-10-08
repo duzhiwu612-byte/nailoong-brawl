@@ -195,7 +195,7 @@ var NL = window.NL = window.NL || {};
       ctx.textAlign = 'center';
       ctx.font = '700 16px "Microsoft YaHei", sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.9 (M11) · 奶娃九形态 · 📱 横屏触控 · 🎁 看笑了 · 🗯 胜利宣言', 640, 706);
+      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.9.1 (M11) · 奶娃九形态 · 📱 横屏触控 · 🎁 看笑了 · 🗯 胜利宣言', 640, 706);
       ctx.restore();
     }
   };

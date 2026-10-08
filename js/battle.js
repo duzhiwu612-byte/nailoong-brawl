@@ -29,6 +29,9 @@ var NL = window.NL = window.NL || {};
     /* —— 奶娃专属（v0.5 新角色）—— */
     milkbottle: { r: 17, speed: 495, damage: 56, hitstun: 18, kbx: 300, kvy: -200, life: 95, g: 120, blockable: true },
     pacifier: { r: 22, speed: 520, damage: 84, hitstun: 20, kbx: 370, kvy: -230, life: 150, g: 0, blockable: true, returns: 400 },
+    /* v0.9.1 看笑了专属：手机（数值与奶瓶/奶嘴一一对应，仅外观不同） */
+    phone: { r: 17, speed: 495, damage: 56, hitstun: 18, kbx: 300, kvy: -200, life: 95, g: 120, blockable: true },
+    phonespin: { r: 22, speed: 520, damage: 84, hitstun: 20, kbx: 370, kvy: -230, life: 150, g: 0, blockable: true, returns: 400 },
     /* v0.6 奶娃九形态专属弹道 */
     heart: { r: 22, speed: 470, damage: 62, hitstun: 18, kbx: 340, kvy: -260, life: 100, g: 40, blockable: true },
     darkorb: { r: 24, speed: 520, damage: 68, hitstun: 19, kbx: 360, kvy: -240, life: 95, g: 0, blockable: true },
@@ -228,7 +231,8 @@ var NL = window.NL = window.NL || {};
             coin: 'gold', goldbeam: 'gold', goldwave: 'gold',
             rocketfist: 'flame', rocket: 'flame', bubble: 'poof',
             heart: 'poof', darkorb: 'poof', flame: 'flame', blade: 'poof',
-            petal: 'poof', voidorb: 'poof', tear: 'splash', milkbottle: 'poof', pacifier: 'poof'
+            petal: 'poof', voidorb: 'poof', tear: 'splash', milkbottle: 'poof', pacifier: 'poof',
+            phone: 'poof', phonespin: 'poof'
           };
           NL.FX.cue(p.x, p.y - 6, cmap[p.type] || 'poof', Math.sign(p.vx) || 1);
           dead = true;
@@ -427,6 +431,33 @@ var NL = window.NL = window.NL || {};
         ctx.setLineDash([6, 6]);
         ctx.beginPath(); ctx.arc(0, 0, 22 + Math.sin(p.t * 0.5) * 3, 0, 6.3); ctx.stroke();
         ctx.setLineDash([]);
+      } else if (p.type === 'phone' || p.type === 'phonespin') {
+        // 手机：深色机身 + 屏幕大笑脸（回旋版转更快 + 虚线光环提示会折返）
+        ctx.rotate(p.t * ((p.type === 'phonespin') ? 0.5 : 0.3));
+        ctx.fillStyle = '#37474F';
+        ctx.strokeStyle = '#1D262B';
+        ctx.lineWidth = 3;
+        U.roundRectPath(ctx, -11, -19, 22, 38, 6);
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#FFF6D8';
+        U.roundRectPath(ctx, -8, -14, 16, 26, 3);
+        ctx.fill();
+        ctx.strokeStyle = '#4A3410';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.moveTo(-5.5, -6.5); ctx.quadraticCurveTo(-3.5, -9.5, -1.5, -6.5); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(1.5, -6.5); ctx.quadraticCurveTo(3.5, -9.5, 5.5, -6.5); ctx.stroke();
+        ctx.fillStyle = '#7A4A2B';
+        ctx.beginPath(); ctx.arc(0, 0.5, 4.6, 0.25, Math.PI - 0.25); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#1D262B';
+        ctx.beginPath(); ctx.arc(0, -16.4, 1.3, 0, 6.3); ctx.fill();
+        ctx.fillRect(10.4, -8, 2.2, 8);
+        if (p.type === 'phonespin') {
+          ctx.strokeStyle = 'rgba(255,182,206,0.65)';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([6, 6]);
+          ctx.beginPath(); ctx.arc(0, 0, 24 + Math.sin(p.t * 0.5) * 3, 0, 6.3); ctx.stroke();
+          ctx.setLineDash([]);
+        }
       } else if (p.type === 'heart') {
         var hp2 = 1 + Math.sin(p.t * 0.3) * 0.08;
         ctx.scale(hp2, hp2);
