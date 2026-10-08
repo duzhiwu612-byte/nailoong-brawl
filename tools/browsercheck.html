@@ -235,6 +235,18 @@
           NL.game.scenes.battle.update = function () {};   // 定格，方便截图
           log('dash: state=' + db.p1.state + ' ghosts=' + db.p1.ghosts.length +
             ' invuln=' + db.p1.invuln + ' x=' + Math.round(db.p1.x));
+        } else if (target === 'xiaole') {
+          NL.game.pendingCfg = { mode: 'ai', difficulty: 1, p1: 'xiaole', p2: 'loving' };
+          NL.game.go('battle');
+          var xb = NL.game.scenes.battle.battle;
+          for (var xi = 0; xi < 170; xi++) xb.update();
+          log('xiaole: p1=' + xb.p1.char.id + ' phase=' + xb.phase);
+          (function (b) {
+            setTimeout(function () {
+              log('xiaole@later: headImg=' + !!(NL.headImg && NL.headImg.xiaole && NL.headImg.xiaole.ok));
+              for (var i2 = 0; i2 < 100; i2++) b.update();
+            }, 1200);
+          })(xb);
         } else if (target === 'mode') {
           NL.game.go('mode');
         } else {

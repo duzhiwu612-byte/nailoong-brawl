@@ -529,4 +529,22 @@ var NL = window.NL = window.NL || {};
   };
 
   NL.charOrder = ['loving', 'dark', 'rage', 'war', 'nailoong', 'void', 'tender', 'divine', 'sad'];
+
+  /* ============================================================
+     彩蛋：看笑了（像素限定）—— 只保留头（像素大头照），身体用奶龙
+     ============================================================ */
+  chars.xiaole = {
+    id: 'xiaole', name: '看笑了', title: '像素限定',
+    desc: '从一张表情包里挖出来的神秘形态：顶着像素版大头照打满全场。它笑得越开心，下手越突然。',
+    playable: true, bonus: true,
+    pal: {
+      body: '#F2C838', bodyDark: '#DBA81E', belly: '#FBF08E', outline: '#D8A012',
+      blush: '#FFAEC0', eye: '#2A2012', mouth: '#7A4A2B', horn: '#F8E8A8'
+    },
+    headScale: 1.2, bodyScale: 0.9,
+    stats: { maxHp: 1500, walk: 335, back: 295, jump: 875, jump2: 805, dash: 645, weight: 0.9 },
+    moves: null
+  };
+  chars.xiaole.moves = chars.nailoong.moves;   // 身体就是奶龙模式：共用同一套招式
+  NL.bonusId = 'xiaole';
 })();

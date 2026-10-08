@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>看笑了 · 卡面生成</title>
+<style>html,body{margin:0;padding:0;background:transparent;overflow:hidden;}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="cv" width="800" height="800"></canvas>
+<script src="../js/util.js"></script>
+<script src="../js/render.js"></script>
+<script src="../js/characters.js"></script>
+<script>
+(function () {
+  var cv = document.getElementById('cv');
+  var ctx = cv.getContext('2d');
+  var img = new Image();
+  var ready = false;
+  img.onload = function () { ready = true; draw(); };
+  img.onerror = function () { draw(); };
+  img.src = '../立绘/xiaole_head.png';
+
+  function draw() {
+    ctx.clearRect(0, 0, 800, 800);
+    if (ready) { NL.headImg = { xiaole: { img: img, ok: true } }; }
+    NL.GROUND = 742;   // 让自带的落地影正好落在脚下
+    var f = {
+      char: NL.chars.xiaole, state: 'idle', stateTime: 0,
+      x: 400, y: 742, facing: 1, seed: 20, vy: 0, flash: 0,
+      squash: { x: 1, y: 1 }, drawScale: 3.55
+    };
+    NL.draw.fighter(ctx, f, 50);
+  }
+
+  setTimeout(draw, 300);
+  setTimeout(draw, 900);
+})();
+</script>
+</body>
+</html>

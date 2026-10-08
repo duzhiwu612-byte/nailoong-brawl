@@ -624,6 +624,15 @@ var NL = window.NL = window.NL || {};
     drawMouth(ctx, a.mouth.x, a.mouth.y, pose.mouth, pal);
   }
 
+  /* 像素大头照（彩蛋角色）：关闭采样平滑，保持像素颗粒感 */
+  function drawPixelHead(ctx, a, img) {
+    var w = a.head.rx * 3.0;
+    var sm = ctx.imageSmoothingEnabled;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(img, a.head.x - w * 0.5 + a.head.rx * 0.02, a.head.y - w * 0.49, w, w);
+    ctx.imageSmoothingEnabled = sm;
+  }
+
   /* ================= 四肢 ================= */
   function drawArm(ctx, a, pose, side, pal, bs, C) {
     var isF = (side === 'F');
@@ -707,6 +716,8 @@ var NL = window.NL = window.NL || {};
 
     var a = buildAnchors(hs, bs);
     var ol = pal.outline;
+    var headRec = NL.headImg && NL.headImg[ch.id];
+    var useHeadImg = !!(headRec && headRec.ok);
 
     var bodyGrad = ctx.createLinearGradient(0, a.head.y - a.head.ry, 0, 0);
     bodyGrad.addColorStop(0, C(shade(pal.body, 1.07)));
@@ -745,15 +756,17 @@ var NL = window.NL = window.NL || {};
     ctx.fill();
     ctx.stroke();
 
-    // 犄角（画在头后面，底部藏进身体）
-    for (var hI = 0; hI < a.horns.length; hI++) {
-      var horn = a.horns[hI];
-      ctx.fillStyle = C(pal.horn);
-      ctx.strokeStyle = ol;
-      ctx.lineWidth = 3.5;
-      U.ellipse(ctx, horn.x, horn.y, horn.r, horn.r * 1.1);
-      ctx.fill();
-      ctx.stroke();
+    // 犄角（画在头后面，底部藏进身体；像素大头照角色不画）
+    if (!useHeadImg) {
+      for (var hI = 0; hI < a.horns.length; hI++) {
+        var horn = a.horns[hI];
+        ctx.fillStyle = C(pal.horn);
+        ctx.strokeStyle = ol;
+        ctx.lineWidth = 3.5;
+        U.ellipse(ctx, horn.x, horn.y, horn.r, horn.r * 1.1);
+        ctx.fill();
+        ctx.stroke();
+      }
     }
 
     // 后腿 / 后手
@@ -777,16 +790,18 @@ var NL = window.NL = window.NL || {};
       ctx.fill();
     }
 
-    // 头顶高光
-    ctx.save();
-    ctx.globalAlpha = 0.15;
-    ctx.fillStyle = '#FFFFFF';
-    U.ellipse(ctx, a.head.x + 12 * hs, a.head.y - 18 * hs, 22 * hs, 13 * hs);
-    ctx.fill();
-    ctx.globalAlpha = 0.32;
-    U.ellipse(ctx, a.head.x + 2 * hs, a.head.y - 26 * hs, 11 * hs, 6 * hs);
-    ctx.fill();
-    ctx.restore();
+    // 头顶高光（像素大头照角色跳过）
+    if (!useHeadImg) {
+      ctx.save();
+      ctx.globalAlpha = 0.15;
+      ctx.fillStyle = '#FFFFFF';
+      U.ellipse(ctx, a.head.x + 12 * hs, a.head.y - 18 * hs, 22 * hs, 13 * hs);
+      ctx.fill();
+      ctx.globalAlpha = 0.32;
+      U.ellipse(ctx, a.head.x + 2 * hs, a.head.y - 26 * hs, 11 * hs, 6 * hs);
+      ctx.fill();
+      ctx.restore();
+    }
 
     // 肚皮（更大更圆，贴近原画的奶油大肚子占比）
     ctx.fillStyle = C(pal.belly);
@@ -802,8 +817,12 @@ var NL = window.NL = window.NL || {};
     // 前腿
     drawLeg(ctx, pose, 'F', pal, bs, C);
 
-    // 脸
-    drawFace(ctx, a, pose, pal);
+    // 脸（像素大头照 / 常规绘制）
+    if (useHeadImg) {
+      drawPixelHead(ctx, a, headRec.img);
+    } else {
+      drawFace(ctx, a, pose, pal);
+    }
 
     // 前手
     drawArm(ctx, a, pose, 'F', pal, bs, C);
@@ -829,6 +848,14 @@ var NL = window.NL = window.NL || {};
   function miniFace(ctx, x, y, r, ch, expr, t) {
     var pal = ch.pal;
     t = t || 0;
+    var hr = NL.headImg && NL.headImg[ch.id];
+    if (hr && hr.ok) {
+      var sm2 = ctx.imageSmoothingEnabled;
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(hr.img, x - r * 1.15, y - r * 1.15, r * 2.3, r * 2.3);
+      ctx.imageSmoothingEnabled = sm2;
+      return;
+    }
     var hs = r / 48;
     ctx.save();
     ctx.translate(x, y);

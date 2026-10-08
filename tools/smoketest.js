@@ -87,6 +87,8 @@ const MOVE_KEYS = ['light1', 'light2', 'light3', 'light4', 'light5', 'heavy', 'a
 // ============ 1. 角色 & 招式数据 ============
 console.log('\n== 角色 & 招式数据 ==');
 check('共 9 种奶娃形态，全部可玩', NL.charOrder.length === 9 && NL.charOrder.every(id => NL.chars[id].playable));
+check('彩蛋角色「看笑了」：可玩 + 与奶龙模式共用招式', !!(NL.chars.xiaole && NL.chars.xiaole.playable && NL.chars.xiaole.moves === NL.chars.nailoong.moves));
+check('彩蛋角色不在九宫格 charOrder 中（独立竖卡）', NL.charOrder.indexOf(NL.bonusId) === -1 && NL.bonusId === 'xiaole');
 check('九形态齐备（慈爱/暗黑/愤怒/战斗/奶龙/空虚/温柔/神龙/忧郁）',
   NL.charOrder.join(',') === 'loving,dark,rage,war,nailoong,void,tender,divine,sad' && !!NL.chars.sad.moves.super);
 

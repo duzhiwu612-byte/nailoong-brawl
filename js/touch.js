@@ -284,6 +284,10 @@ var NL = window.NL = window.NL || {};
         sc.cursor[sc.picking] = row * 3 + col;
         NL.SFX && NL.SFX.play && NL.SFX.play('select');
         keyTap('KeyJ');
+      } else if (x < 180 && y >= 90 && y <= 665) {
+        sc.cursor[sc.picking] = NL.charOrder.length;
+        NL.SFX && NL.SFX.play && NL.SFX.play('select');
+        keyTap('KeyJ');
       }
       return;
     }
