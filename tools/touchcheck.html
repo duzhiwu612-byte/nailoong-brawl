@@ -41,7 +41,7 @@
           /* 桌面禁用态（?touch=0）：必须零介入 */
           ok(!!(UI && UI.enabled === false), 'touchUI 关闭态');
           ok(!document.getElementById('touchui'), '未注入虚拟按键 DOM');
-          ok(!document.querySelector('#connect, #rotate-tip, .tbtn'), '未注入任何触屏节点');
+          ok(!document.querySelector('#connect, .tbtn, #rot-root, #rot-hint'), '未注入任何触屏节点');
           ok(!document.documentElement.classList.contains('touch-on'), '未启用 touch-on 根类');
           log('errors=' + window.__ERRORS__.length);
           log(fail === 0 ? ('ALL PASS ' + pass + '/' + (pass + fail)) : ('FAILED ' + fail + ' / ' + (pass + fail)));
@@ -97,47 +97,42 @@
         ok(NL.Input.pstate[0].pDash === -1, '双击 ◀ 触发虚步 pDash=-1（实际 ' + NL.Input.pstate[0].pDash + '）');
         NL.Input.setKey('KeyA', false); NL.Input.poll();
 
-        // 横屏提示节点
-        ok(!!document.getElementById('rotate-tip'), '横屏提示节点存在');
+        // ===== v0.9.4 自动横屏渲染（不依赖浏览器 API） =====
+        ok(!!document.getElementById('rot-root'), '旋转层 #rot-root 存在');
+        ok(!!document.getElementById('rot-hint'), '横屏提示气泡 #rot-hint 存在');
+        ok(document.getElementById('rot-root').contains(document.getElementById('game')), '画布已纳入旋转层');
+        ok(typeof UI.enterLandscapeFs === 'function' && typeof UI.exitLandscapeFs === 'function', '全屏接口已暴露');
 
-        // ===== v0.9.3 一键横屏全屏 =====
-        var goBtn = document.getElementById('rotate-go');
-        ok(!!goBtn, '一键横屏全屏按钮存在');
-        ok(typeof UI.enterLandscapeFs === 'function' && typeof UI.exitLandscapeFs === 'function', '横屏全屏接口已暴露');
-        if (goBtn) {
-          try {
-            goBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-            ok(true, '点击一键横屏按钮无异常');
-          } catch (e) { ok(false, '点击一键横屏按钮异常: ' + e.message); }
-        }
-        ok(UI._fsTried === true, '点击后标记已尝试全屏');
-
-        // 竖屏/横屏提示显隐（模拟窗口尺寸）
+        // 竖屏自动旋转 / 横屏自动还原（模拟窗口尺寸）
         (function () {
-          var tipEl = document.getElementById('rotate-tip');
+          var rr = document.getElementById('rot-root');
+          var hEl = document.getElementById('rot-hint');
           var VW = window.innerWidth, VH = window.innerHeight;
           try {
             Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true });
             Object.defineProperty(window, 'innerHeight', { value: 844, configurable: true });
             UI._refresh();
-            ok(tipEl.classList.contains('show'), '模拟竖屏 390x844 → 显示横屏提示');
+            ok(document.documentElement.classList.contains('rot-on'), '模拟竖屏 390x844 → 自动进入旋转横屏');
+            ok(rr.style.width === '844px' && rr.style.height === '390px', '旋转层尺寸=交换视口 (' + rr.style.width + 'x' + rr.style.height + ')');
+            ok(hEl.classList.contains('show'), '竖屏 → 显示横屏提示气泡');
             Object.defineProperty(window, 'innerWidth', { value: 844, configurable: true });
             Object.defineProperty(window, 'innerHeight', { value: 390, configurable: true });
             UI._refresh();
-            ok(!tipEl.classList.contains('show'), '模拟横屏 844x390 → 提示自动隐藏');
+            ok(!document.documentElement.classList.contains('rot-on'), '模拟横屏 844x390 → 自动退出旋转');
+            ok(!hEl.classList.contains('show'), '横屏 → 提示气泡隐藏');
           } catch (e) { ok(false, '模拟窗口尺寸异常: ' + e.message); }
           Object.defineProperty(window, 'innerWidth', { value: VW, configurable: true });
           Object.defineProperty(window, 'innerHeight', { value: VH, configurable: true });
           UI._refresh();
         })();
 
-        // 首次点按画布 → 自动尝试横屏全屏
+        // 首次点按画布 → 自动尝试全屏（可用则全屏+锁横屏；不可用静默无副作用）
         (function () {
           UI._fsTried = false;
           var cvEl = document.getElementById('game');
           try {
             cvEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
-            ok(UI._fsTried === true, '首次点按画布 → 自动触发横屏全屏尝试');
+            ok(UI._fsTried === true, '首次点按画布 → 自动触发全屏尝试');
           } catch (e) { ok(false, '画布点按异常: ' + e.message); }
         })();
 

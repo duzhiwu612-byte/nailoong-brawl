@@ -30,8 +30,21 @@ def check(name, regions, mins):
     return good
 
 results = []
-# ① 竖屏：旋转提示文字/按钮
-results.append(check('手机_1_竖屏提示.png', [(60, 320, 330, 540)], [150]))
+# ① 竖屏：自动旋转横屏渲染（整屏游戏画面）+ 底部横屏提示气泡
+a1 = load('手机_1_竖屏提示.png')
+if a1 is not None:
+    H1, W1 = a1.shape[:2]
+    mid = a1[int(H1 * 0.25):int(H1 * 0.72), int(W1 * 0.10):int(W1 * 0.90)]
+    bright = float((mid.max(axis=2) > 110).mean())
+    ok1 = bright > 0.25
+    print('手机_1 中央明亮占比: %.2f %s' % (bright, 'OK（旋转后的横屏画面已铺满）' if ok1 else '!! 偏暗，旋转可能未生效'))
+    g1 = gold_count(a1, (40, H1 - 80, W1 - 40, H1 - 4))
+    ok2 = g1 > 120
+    print('手机_1 底部提示气泡金色像素: %d %s' % (g1, 'OK' if ok2 else '!! 缺少横屏提示'))
+    results.append(ok1 and ok2)
+else:
+    print('手机_1_竖屏提示.png: 缺失!')
+    results.append(False)
 # ② 横屏标题：右下菜单键（须有）；"轻触屏幕开始"文案；左下应为空（菜单簇只在右侧）
 a2 = load('手机_2_标题页触控.png')
 ok_a = check('手机_2_标题页触控.png',
@@ -55,6 +68,22 @@ if a4 is not None:
     v = gold_count(a4, (10, 540, 240, 710)) + gold_count(a4, (1030, 540, 1270, 710))
     print('手机_4 左右下角金色合计: %d %s' % (v, 'OK（桌面无按钮）' if v < 250 else '!! 桌面被污染'))
     results[-1] = results[-1] and (v < 250)
+
+# ⑤ 竖屏旋转战斗：画面铺满 + 按键角落可见
+a5 = load('手机_6_竖屏旋转战斗.png')
+if a5 is not None:
+    H5, W5 = a5.shape[:2]
+    mid5 = a5[int(H5 * 0.25):int(H5 * 0.75), int(W5 * 0.1):int(W5 * 0.9)]
+    bright5 = float((mid5.max(axis=2) > 100).mean())
+    ok51 = bright5 > 0.35
+    b5 = gold_count(a5, (0, 0, W5, H5))
+    ok52 = b5 > 800
+    print('手机_6 中央明亮占比: %.2f %s / 全屏金色(按键环): %d %s' % (
+        bright5, 'OK' if ok51 else '!!', b5, 'OK' if ok52 else '!!'))
+    results.append(ok51 and ok52)
+else:
+    print('手机_6_竖屏旋转战斗.png: 缺失!')
+    results.append(False)
 
 print('')
 print('===== 总判定: %s =====' % ('全部通过 ✔' if all(results) else '存在需检查项 ✘'))

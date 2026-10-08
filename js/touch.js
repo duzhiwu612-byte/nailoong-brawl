@@ -1,7 +1,8 @@
-/* 奶龙大乱斗 - 手机端触屏支持（虚拟按键 / 一键横屏全屏 / 音频解锁 / 画布点选）
+/* 奶龙大乱斗 - 手机端触屏支持（虚拟按键 / 自动横屏渲染 / 全屏锁横屏 / 音频解锁 / 画布点选）
    仅在有触屏的设备或 URL 带 ?touch=1 时启用；桌面环境完全零介入、零影响。
-   测试页：tools/touchcheck.html?touch=1 ；强制关闭：?touch=0
-   v0.9.3：竖屏大按钮"一键横屏全屏"（安卓自动转横屏）；横屏下首次点按自动进全屏。 */
+   测试页：tools/touchcheck.html?touch=1 ；强制关闭：?touch=0 ；关闭自动旋转：?rot=0
+   v0.9.4：竖屏一律用 CSS 旋转把整屏渲染成横屏（不依赖任何浏览器 API，微信/锁竖屏也生效）；
+           支持全屏的浏览器（安卓 Chrome 等）首次点按画面自动进全屏并锁横屏。 */
 var NL = window.NL = window.NL || {};
 (function () {
   'use strict';
@@ -38,19 +39,16 @@ var NL = window.NL = window.NL || {};
     '#touchui.mode-battle #tc-cluster-sys { display: block; }',
     '#touchui .sys-pause { display: none; }',
     '#touchui.mode-battle .sys-pause { display: flex; }',
-    '#rotate-tip { position: fixed; inset: 0; z-index: 90; display: none; flex-direction: column; align-items: center; justify-content: center;',
-    '  background: rgba(20,16,10,0.97); color: #FFE066; text-align: center; font-family: "Microsoft YaHei", "PingFang SC", sans-serif; }',
-    '#rotate-tip.show { display: flex; }',
-    '#rotate-tip .ph { font-size: 62px; transform: rotate(90deg); margin-bottom: 16px; }',
-    '#rotate-tip p { font-size: 21px; margin: 6px 0; letter-spacing: 1px; }',
-    '#rotate-tip .sub { font-size: 14px; color: rgba(255,224,102,0.72); }',
-    '#rotate-tip .keep { pointer-events: auto; margin-top: 18px; padding: 8px 20px; border: 2px solid rgba(255,217,59,0.5);',
-    '  border-radius: 22px; font-size: 13px; color: rgba(255,233,168,0.8); background: rgba(255,217,59,0.10); }',
-    '#rotate-tip .go { pointer-events: auto; margin-top: 28px; padding: 15px 40px; border: 3px solid #FFD93B; border-radius: 38px;',
-    '  font-size: 21px; font-weight: 700; color: #3A2C14; background: #FFE066; box-shadow: 0 8px 22px rgba(0,0,0,0.5);',
-    '  font-family: inherit; -webkit-appearance: none; appearance: none; }',
-    '#rotate-tip .go:active { transform: scale(0.95); }',
-    '#rotate-tip .gohint { margin-top: 14px; font-size: 13px; }'
+    /* 自动旋转层：竖屏时整层旋转 90°，把横屏画面铺满竖屏 */
+    '#rot-root { position: fixed; left: 0; top: 0; width: 100%; height: 100%; }',
+    'html.rot-on #rot-root { width: 100vh; height: 100vw; transform-origin: 0 0;',
+    '  transform: translateX(100vw) rotate(90deg); }',
+    'html.rot-on #game { max-width: 100vh !important; max-height: 100vw !important; }',
+    '#rot-hint { position: fixed; left: 50%; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%);',
+    '  z-index: 80; padding: 10px 22px; border-radius: 24px; background: rgba(28,22,10,0.88); border: 2px solid rgba(255,217,59,0.65);',
+    '  color: #FFE9A8; font-size: 15px; letter-spacing: 1px; pointer-events: none; opacity: 0; transition: opacity 0.4s;',
+    '  font-family: "Microsoft YaHei", "PingFang SC", sans-serif; white-space: nowrap; }',
+    '#rot-hint.show { opacity: 1; }'
   ].join('\n');
   var st = document.createElement('style');
   st.textContent = css;
@@ -171,36 +169,54 @@ var NL = window.NL = window.NL || {};
   UI.exitLandscapeFs = exitLandscapeFs;
   UI._fsTried = false;
 
-  /* 横屏提示：一键横屏全屏开玩 */
-  var tip = document.createElement('div');
-  tip.id = 'rotate-tip';
-  tip.innerHTML = '<div class="ph">📱</div><p>横屏开打更爽！</p>' +
-    '<p class="sub">《奶龙大乱斗》是横屏格斗游戏</p>' +
-    '<button class="go" id="rotate-go">🔄 一键横屏全屏开玩</button>' +
-    '<p class="sub gohint" id="rotate-hint">安卓：点了自动转横屏 · iPhone：请手动把手机横过来</p>' +
-    '<div class="keep" id="rotate-keep">坚持竖屏</div>';
-  document.body.appendChild(tip);
-  var keepEl = tip.querySelector('#rotate-keep');
-  var hintEl = tip.querySelector('#rotate-hint');
-  if (keepEl) {
-    keepEl.addEventListener('click', function (e) {
-      if (e.stopPropagation) e.stopPropagation();
-      UI.dismissRotate = true;
-    });
+  /* ================= 自动旋转层：竖屏时把整个游戏旋转 90° 铺满屏幕 ================= */
+  var rotAllowed = !/rot=(0|off)/.test(qs);
+  var rotRoot = document.createElement('div');
+  rotRoot.id = 'rot-root';
+  document.body.insertBefore(rotRoot, document.body.firstChild);
+  var stageEl = document.getElementById('wrap') || document.getElementById('game');
+  if (stageEl) rotRoot.appendChild(stageEl);
+  rotRoot.appendChild(root);   // 触控 UI 一起进旋转层 → 按键跟着画面转到横屏位置的"左下/右下"
+
+  var rotOn = false;
+  var hint = document.createElement('div');
+  hint.id = 'rot-hint';
+  hint.innerHTML = '📱 把手机向左横过来，立刻横屏开玩 ↺';
+  document.body.appendChild(hint);
+  var hintTimer = 0;
+  function hintShow(on) {
+    if (on) {
+      hint.classList.add('show');
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(function () { hint.classList.remove('show'); }, 12000);
+    } else {
+      hint.classList.remove('show');
+    }
   }
-  function rotateGo() {
-    enterLandscapeFs();
-    if (hintEl) hintEl.textContent = '没反应？把手机横过来就行了 ✋';
+
+  function updateRotate() {
+    var W = window.innerWidth, H = window.innerHeight;
+    var portrait = H > W * 1.04;
+    var want = rotAllowed && portrait;
+    if (want !== rotOn) {
+      rotOn = want;
+      UI._rotOn = rotOn;
+      document.documentElement.classList.toggle('rot-on', rotOn);
+      if (rotOn) {
+        rotRoot.style.width = H + 'px';
+        rotRoot.style.height = W + 'px';
+      } else {
+        rotRoot.style.width = '';
+        rotRoot.style.height = '';
+      }
+      try { window.dispatchEvent(new Event('resize')); } catch (e) {}   // 让主程序按交换后宽高重排画布
+      hintShow(rotOn);
+    }
+    if (rotOn) {   // 地址栏伸缩等导致尺寸变化时保持同步
+      if (rotRoot.style.width !== H + 'px') rotRoot.style.width = H + 'px';
+      if (rotRoot.style.height !== W + 'px') rotRoot.style.height = W + 'px';
+    }
   }
-  var goEl = tip.querySelector('#rotate-go');
-  if (goEl) goEl.addEventListener('click', function (e) {
-    if (e.stopPropagation) e.stopPropagation();
-    rotateGo();
-  });
-  tip.addEventListener('click', function (e) {
-    if (e.target && e.target.id === 'rotate-keep') return;
-    rotateGo();
-  });
 
   /* ================= 按压 → 按键注入 ================= */
   var active = {};   // pointerId -> code
@@ -216,7 +232,6 @@ var NL = window.NL = window.NL || {};
     if (active[id] !== undefined) return;
     active[id] = code;
     if (el) el.classList.add('pressed');
-    if (!UI._fsTried) enterLandscapeFs();   // 首次触碰任意按键 → 也自动尝试横屏全屏
     if (NL.Input && NL.Input.setKey) NL.Input.setKey(code, true);
   }
   function release(id) {
@@ -272,7 +287,7 @@ var NL = window.NL = window.NL || {};
   /* ================= 滚动 / 缩放 / 长按菜单抑制 ================= */
   document.addEventListener('touchmove', function (e) {
     var t = e.target;
-    var inside = t && t.closest && (t.closest('#touchui') || t.closest('#rotate-tip') || t.id === 'game' || t.id === 'wrap');
+    var inside = t && t.closest && (t.closest('#touchui') || t.closest('#rot-root') || t.id === 'game' || t.id === 'wrap');
     if (inside) e.preventDefault();
   }, { passive: false });
   document.addEventListener('dblclick', function (e) { e.preventDefault(); }, { passive: false });
@@ -282,9 +297,8 @@ var NL = window.NL = window.NL || {};
     if (e.code === 'KeyM') UI.muted = !UI.muted;
   });
 
-  /* ================= 场景显隐 + 横屏提示 ================= */
+  /* ================= 场景显隐 + 自动横屏 ================= */
   var lastMode = '';
-  var tipShown = false;
 
   function refresh() {
     var g = NL.game;
@@ -295,12 +309,7 @@ var NL = window.NL = window.NL || {};
       root.classList.add(mode);
       lastMode = mode;
     }
-    var portrait = window.innerHeight > window.innerWidth * 1.04;
-    var want = portrait && !UI.dismissRotate;
-    if (want !== tipShown) {
-      tip.classList.toggle('show', want);
-      tipShown = want;
-    }
+    updateRotate();
   }
   UI._refresh = refresh;
 
@@ -319,7 +328,7 @@ var NL = window.NL = window.NL || {};
 
   document.addEventListener('click', function (e) {
     var t = e.target;
-    if (!t || t.id === 'touchui' || t.id === 'rotate-tip') return;
+    if (!t || t.id === 'touchui' || t.id === 'rot-hint') return;
     if (t.closest && t.closest('#touchui')) return;
     var cv = document.getElementById('game');
     if (!cv) return;
@@ -332,8 +341,18 @@ var NL = window.NL = window.NL || {};
     if (!g || !g.scene || !g.scenes) return;
     var r = cv.getBoundingClientRect();
     if (!r.width || !r.height) return;
-    var x = (e.clientX - r.left) * 1280 / r.width;
-    var y = (e.clientY - r.top) * 720 / r.height;
+    var nx, ny;
+    if (UI._rotOn) {
+      // 旋转 90° 后的画布：物理坐标 → 游戏坐标需要换轴
+      nx = (e.clientY - r.top) / r.height;
+      ny = (r.right - e.clientX) / r.width;
+    } else {
+      nx = (e.clientX - r.left) / r.width;
+      ny = (e.clientY - r.top) / r.height;
+    }
+    var x = nx * 1280;
+    var y = ny * 720;
+    hint.classList.remove('show');   // 用户开始操作了，提示可以收起来了
 
     if (g.scene === g.scenes.title) {
       keyTap('Enter');

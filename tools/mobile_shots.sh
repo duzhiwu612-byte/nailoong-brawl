@@ -22,6 +22,8 @@ echo "== ③ 横屏战斗（战斗键）=="
 shot 880 400 "$BASE/tools/browsercheck.html?touch=1#battle" "手机_3_战斗触控.png"
 echo "== ④ 桌面回归（应无任何触控按钮）=="
 shot 1280 720 "$BASE/index.html" "手机_4_桌面无触控.png"
+echo "== ⑤ 竖屏旋转战斗（按键跟画面一起转）=="
+shot 390 844 "$BASE/tools/browsercheck.html?touch=1#battle" "手机_6_竖屏旋转战斗.png"
 
 echo ""
 echo "== 触屏功能自检（启用态 ?touch=1）=="
