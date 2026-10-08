@@ -100,6 +100,47 @@
         // 横屏提示节点
         ok(!!document.getElementById('rotate-tip'), '横屏提示节点存在');
 
+        // ===== v0.9.3 一键横屏全屏 =====
+        var goBtn = document.getElementById('rotate-go');
+        ok(!!goBtn, '一键横屏全屏按钮存在');
+        ok(typeof UI.enterLandscapeFs === 'function' && typeof UI.exitLandscapeFs === 'function', '横屏全屏接口已暴露');
+        if (goBtn) {
+          try {
+            goBtn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+            ok(true, '点击一键横屏按钮无异常');
+          } catch (e) { ok(false, '点击一键横屏按钮异常: ' + e.message); }
+        }
+        ok(UI._fsTried === true, '点击后标记已尝试全屏');
+
+        // 竖屏/横屏提示显隐（模拟窗口尺寸）
+        (function () {
+          var tipEl = document.getElementById('rotate-tip');
+          var VW = window.innerWidth, VH = window.innerHeight;
+          try {
+            Object.defineProperty(window, 'innerWidth', { value: 390, configurable: true });
+            Object.defineProperty(window, 'innerHeight', { value: 844, configurable: true });
+            UI._refresh();
+            ok(tipEl.classList.contains('show'), '模拟竖屏 390x844 → 显示横屏提示');
+            Object.defineProperty(window, 'innerWidth', { value: 844, configurable: true });
+            Object.defineProperty(window, 'innerHeight', { value: 390, configurable: true });
+            UI._refresh();
+            ok(!tipEl.classList.contains('show'), '模拟横屏 844x390 → 提示自动隐藏');
+          } catch (e) { ok(false, '模拟窗口尺寸异常: ' + e.message); }
+          Object.defineProperty(window, 'innerWidth', { value: VW, configurable: true });
+          Object.defineProperty(window, 'innerHeight', { value: VH, configurable: true });
+          UI._refresh();
+        })();
+
+        // 首次点按画布 → 自动尝试横屏全屏
+        (function () {
+          UI._fsTried = false;
+          var cvEl = document.getElementById('game');
+          try {
+            cvEl.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 }));
+            ok(UI._fsTried === true, '首次点按画布 → 自动触发横屏全屏尝试');
+          } catch (e) { ok(false, '画布点按异常: ' + e.message); }
+        })();
+
         log('errors=' + window.__ERRORS__.length + (window.__ERRORS__.length ? ' -> ' + window.__ERRORS__.join(' | ') : ''));
         log(fail === 0 ? ('ALL PASS ' + pass + '/' + (pass + fail)) : ('FAILED ' + fail + ' / ' + (pass + fail)));
       });

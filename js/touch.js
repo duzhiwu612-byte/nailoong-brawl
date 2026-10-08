@@ -1,6 +1,7 @@
-/* 奶龙大乱斗 - 手机端触屏支持（虚拟按键 / 横屏提示 / 音频解锁 / 画布点选）
+/* 奶龙大乱斗 - 手机端触屏支持（虚拟按键 / 一键横屏全屏 / 音频解锁 / 画布点选）
    仅在有触屏的设备或 URL 带 ?touch=1 时启用；桌面环境完全零介入、零影响。
-   测试页：tools/touchcheck.html?touch=1 ；强制关闭：?touch=0 */
+   测试页：tools/touchcheck.html?touch=1 ；强制关闭：?touch=0
+   v0.9.3：竖屏大按钮"一键横屏全屏"（安卓自动转横屏）；横屏下首次点按自动进全屏。 */
 var NL = window.NL = window.NL || {};
 (function () {
   'use strict';
@@ -43,8 +44,13 @@ var NL = window.NL = window.NL || {};
     '#rotate-tip .ph { font-size: 62px; transform: rotate(90deg); margin-bottom: 16px; }',
     '#rotate-tip p { font-size: 21px; margin: 6px 0; letter-spacing: 1px; }',
     '#rotate-tip .sub { font-size: 14px; color: rgba(255,224,102,0.72); }',
-    '#rotate-tip .keep { pointer-events: auto; margin-top: 24px; padding: 10px 24px; border: 2px solid rgba(255,217,59,0.7);',
-    '  border-radius: 24px; font-size: 15px; color: #FFE9A8; background: rgba(255,217,59,0.12); }'
+    '#rotate-tip .keep { pointer-events: auto; margin-top: 18px; padding: 8px 20px; border: 2px solid rgba(255,217,59,0.5);',
+    '  border-radius: 22px; font-size: 13px; color: rgba(255,233,168,0.8); background: rgba(255,217,59,0.10); }',
+    '#rotate-tip .go { pointer-events: auto; margin-top: 28px; padding: 15px 40px; border: 3px solid #FFD93B; border-radius: 38px;',
+    '  font-size: 21px; font-weight: 700; color: #3A2C14; background: #FFE066; box-shadow: 0 8px 22px rgba(0,0,0,0.5);',
+    '  font-family: inherit; -webkit-appearance: none; appearance: none; }',
+    '#rotate-tip .go:active { transform: scale(0.95); }',
+    '#rotate-tip .gohint { margin-top: 14px; font-size: 13px; }'
   ].join('\n');
   var st = document.createElement('style');
   st.textContent = css;
@@ -119,17 +125,82 @@ var NL = window.NL = window.NL || {};
     btnFs.style.display = 'none';
   }
 
-  /* 横屏提示 */
+  /* ================= 一键横屏全屏 ================= */
+  function fullscreenEl() {
+    return document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || null;
+  }
+  function tryLockLandscape() {
+    try {
+      var so = window.screen && screen.orientation;
+      if (so && so.lock) {
+        var p = so.lock('landscape');
+        if (p && p['catch']) p['catch'](function () {});
+        return true;
+      }
+      if (screen.lockOrientation) { screen.lockOrientation('landscape'); return true; }
+      if (screen.webkitLockOrientation) { screen.webkitLockOrientation('landscape'); return true; }
+      if (screen.mozLockOrientation) { screen.mozLockOrientation('landscape'); return true; }
+    } catch (e) {}
+    return false;
+  }
+  function enterLandscapeFs() {
+    UI._fsTried = true;
+    if (fullscreenEl()) { tryLockLandscape(); return; }
+    var de = document.documentElement;
+    var req = null;
+    try {
+      if (de.requestFullscreen) req = de.requestFullscreen();
+      else if (de.webkitRequestFullscreen) req = de.webkitRequestFullscreen();
+    } catch (e) {}
+    var later = function () { tryLockLandscape(); };
+    if (req && req.then) {
+      req.then(function () { setTimeout(later, 60); });
+      if (req['catch']) req['catch'](function () { setTimeout(later, 60); });
+      return;
+    }
+    setTimeout(later, 120);
+  }
+  function exitLandscapeFs() {
+    try {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    } catch (e) {}
+    try { if (window.screen && screen.orientation && screen.orientation.unlock) screen.orientation.unlock(); } catch (e) {}
+  }
+  UI.enterLandscapeFs = enterLandscapeFs;
+  UI.exitLandscapeFs = exitLandscapeFs;
+  UI._fsTried = false;
+
+  /* 横屏提示：一键横屏全屏开玩 */
   var tip = document.createElement('div');
   tip.id = 'rotate-tip';
-  tip.innerHTML = '<div class="ph">📱</div><p>请把手机横过来玩</p>' +
+  tip.innerHTML = '<div class="ph">📱</div><p>横屏开打更爽！</p>' +
     '<p class="sub">《奶龙大乱斗》是横屏格斗游戏</p>' +
+    '<button class="go" id="rotate-go">🔄 一键横屏全屏开玩</button>' +
+    '<p class="sub gohint" id="rotate-hint">安卓：点了自动转横屏 · iPhone：请手动把手机横过来</p>' +
     '<div class="keep" id="rotate-keep">坚持竖屏</div>';
   document.body.appendChild(tip);
   var keepEl = tip.querySelector('#rotate-keep');
+  var hintEl = tip.querySelector('#rotate-hint');
   if (keepEl) {
-    keepEl.addEventListener('click', function () { UI.dismissRotate = true; });
+    keepEl.addEventListener('click', function (e) {
+      if (e.stopPropagation) e.stopPropagation();
+      UI.dismissRotate = true;
+    });
   }
+  function rotateGo() {
+    enterLandscapeFs();
+    if (hintEl) hintEl.textContent = '没反应？把手机横过来就行了 ✋';
+  }
+  var goEl = tip.querySelector('#rotate-go');
+  if (goEl) goEl.addEventListener('click', function (e) {
+    if (e.stopPropagation) e.stopPropagation();
+    rotateGo();
+  });
+  tip.addEventListener('click', function (e) {
+    if (e.target && e.target.id === 'rotate-keep') return;
+    rotateGo();
+  });
 
   /* ================= 按压 → 按键注入 ================= */
   var active = {};   // pointerId -> code
@@ -145,6 +216,7 @@ var NL = window.NL = window.NL || {};
     if (active[id] !== undefined) return;
     active[id] = code;
     if (el) el.classList.add('pressed');
+    if (!UI._fsTried) enterLandscapeFs();   // 首次触碰任意按键 → 也自动尝试横屏全屏
     if (NL.Input && NL.Input.setKey) NL.Input.setKey(code, true);
   }
   function release(id) {
@@ -190,14 +262,11 @@ var NL = window.NL = window.NL || {};
     }
   }
 
-  /* 全屏按钮（独立处理，不注入按键） */
+  /* 全屏按钮：切换全屏（进入时锁横屏，退出时解锁） */
   btnFs.addEventListener('pointerdown', function (e) {
     e.preventDefault();
-    try {
-      var de = document.documentElement;
-      if (de.requestFullscreen) de.requestFullscreen();
-      else if (de.webkitRequestFullscreen) de.webkitRequestFullscreen();
-    } catch (err) {}
+    if (fullscreenEl()) exitLandscapeFs();
+    else enterLandscapeFs();
   });
 
   /* ================= 滚动 / 缩放 / 长按菜单抑制 ================= */
@@ -255,6 +324,10 @@ var NL = window.NL = window.NL || {};
     var cv = document.getElementById('game');
     if (!cv) return;
     if (!(t === cv || cv.contains(t) || t.id === 'wrap')) return;
+
+    // 首次点按画布：自动尝试横屏全屏（每页仅一次；不依赖游戏状态）
+    if (!UI._fsTried) enterLandscapeFs();
+
     var g = NL.game;
     if (!g || !g.scene || !g.scenes) return;
     var r = cv.getBoundingClientRect();

@@ -184,7 +184,7 @@ var NL = window.NL = window.NL || {};
       ctx.lineJoin = 'round';
       ctx.strokeStyle = '#5A4318';
       ctx.lineWidth = 9;
-      var startTip = (NL.touchUI && NL.touchUI.enabled) ? '轻触屏幕开始游戏' : '按 Enter 开始游戏';
+      var startTip = (NL.touchUI && NL.touchUI.enabled) ? '轻触开始 · 自动全屏横屏' : '按 Enter 开始游戏';
       ctx.strokeText(startTip, 640, 302);
       ctx.fillStyle = '#FFE066';
       ctx.fillText(startTip, 640, 302);
@@ -195,7 +195,7 @@ var NL = window.NL = window.NL || {};
       ctx.textAlign = 'center';
       ctx.font = '700 16px "Microsoft YaHei", sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.9.2 (M11) · 奶娃九形态 · 📱 横屏触控 · 🎁 看笑了 · 🗯 胜利宣言', 640, 706);
+      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.9.3 (M11) · 奶娃九形态 · 📱 横屏触控 · 🎁 看笑了 · 🗯 胜利宣言', 640, 706);
       ctx.restore();
     }
   };
