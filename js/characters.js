@@ -41,6 +41,7 @@ var NL = window.NL = window.NL || {};
      ============================================================ */
   chars.loving = {
     id: 'loving', name: '慈爱模式', title: '摸头天使',
+    winQuote: '来，摸摸头～下次要加油哦',
     desc: '绿油油的慈爱形态：见谁都先摸头再说话。打着打着，连对手都不好意思还手了。',
     playable: true,
     pal: {
@@ -96,6 +97,7 @@ var NL = window.NL = window.NL || {};
      ============================================================ */
   chars.dark = {
     id: 'dark', name: '暗黑模式', title: '暗夜零号',
+    winQuote: '黑暗，才是一切的主宰…',
     desc: '暗黑化的奶娃：眼睛失去高光、浑身冒着黑气。它不说话，只是把影子伸向对手。',
     playable: true,
     pal: {
@@ -152,6 +154,7 @@ var NL = window.NL = window.NL || {};
      ============================================================ */
   chars.rage = {
     id: 'rage', name: '愤怒模式', title: '暴走火种',
+    winQuote: '哼！惹我生气的就这下场！',
     desc: '愤怒形态：头顶三丈火，见谁都吼。拳头比脑子快，威力全场第一，就是收不住。',
     playable: true,
     pal: {
@@ -209,6 +212,7 @@ var NL = window.NL = window.NL || {};
      ============================================================ */
   chars.war = {
     id: 'war', name: '战斗模式', title: '百战老兵',
+    winQuote: '战斗，是刻在骨子里的本能！',
     desc: '战斗形态：披着小肩甲、绑着护额，开口就是"冲"。别看个头小，一身都是战术素养。',
     playable: true,
     pal: {
@@ -266,6 +270,7 @@ var NL = window.NL = window.NL || {};
      ============================================================ */
   chars.nailoong = {
     id: 'nailoong', name: '奶龙模式', title: '奶龙本龙',
+    winQuote: '奶龙我，宇宙最强！',
     desc: '切换为奶龙形态！熟悉的金黄、熟悉的大肚子——奶瓶才是本体，谁抢跟谁急。',
     playable: true,
     pal: {
@@ -299,6 +304,7 @@ var NL = window.NL = window.NL || {};
      ============================================================ */
   chars.void = {
     id: 'void', name: '空虚模式', title: '空心状态',
+    winQuote: '赢了…可是好空虚…',
     desc: '空虚形态：眼神空洞、说话带回声。谁也猜不透它在想什么——连它自己也不知道。',
     playable: true,
     pal: {
@@ -347,6 +353,7 @@ var NL = window.NL = window.NL || {};
      ============================================================ */
   chars.tender = {
     id: 'tender', name: '温柔模式', title: '春风小可爱',
+    winQuote: '辛苦啦～回去喝杯奶茶吧',
     desc: '温柔形态：声音软软的，像花瓣一样轻。但别误会——温柔的人打人也可以很疼。',
     playable: true,
     pal: {
@@ -400,6 +407,7 @@ var NL = window.NL = window.NL || {};
      ============================================================ */
   chars.divine = {
     id: 'divine', name: '神龙模式', title: '真龙显圣',
+    winQuote: '神龙摆尾，凡尘无敌！',
     desc: '神龙形态：头生龙角、颌下龙须，浑身金鳞。据说它一抬爪，云都要让路。',
     playable: true,
     pal: {
@@ -473,6 +481,7 @@ var NL = window.NL = window.NL || {};
      ============================================================ */
   chars.sad = {
     id: 'sad', name: '忧郁模式', title: '雨天心情',
+    winQuote: '赢了比赛，输给了心情…',
     desc: '忧郁形态：头顶自带小乌云，走到哪里哪里下雨。它的眼泪，掉下来就是武器。',
     playable: true,
     pal: {
@@ -535,6 +544,7 @@ var NL = window.NL = window.NL || {};
      ============================================================ */
   chars.xiaole = {
     id: 'xiaole', name: '看笑了', title: '像素限定',
+    winQuote: '看笑了',
     desc: '从一张表情包里挖出来的神秘形态：顶着像素版大头照打满全场。它笑得越开心，下手越突然。',
     playable: true, bonus: true,
     pal: {

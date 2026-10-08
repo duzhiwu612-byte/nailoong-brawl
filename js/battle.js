@@ -707,8 +707,13 @@ var NL = window.NL = window.NL || {};
         this.phase = 'roundEnd';
         this.phaseT = 0;
         if (win) {
-          var extra = (win.hp === win.maxHp) ? '完美！全程无伤！'
-            : U.pick(['太残暴了…', '毫无还手之力！', '这就是干饭的力量！', '回去再练两年吧！']);
+          var extra;
+          if (win.char.winQuote) {
+            extra = '\u300c' + win.char.winQuote + '\u300d' + ((win.hp === win.maxHp) ? ' \u00b7 全程无伤！' : '');
+          } else {
+            extra = (win.hp === win.maxHp) ? '完美！全程无伤！'
+              : U.pick(['太残暴了…', '毫无还手之力！', '这就是干饭的力量！', '回去再练两年吧！']);
+          }
           this.setAnnounce(win.char.name + ' 获胜！', extra, 150);
           NL.SFX.play('win');
         } else {
@@ -725,7 +730,8 @@ var NL = window.NL = window.NL || {};
           this.phaseT = 0;
           this.matchOver = true;
           var champ = this.fighters[this.winnerIdx];
-          this.setAnnounce(champ.char.name + ' 拿下比赛！', '宇宙最强龙的称号是它的了！', 260);
+          var msub = champ.char.winQuote ? ('胜利宣言：\u300c' + champ.char.winQuote + '\u300d') : '宇宙最强龙的称号是它的了！';
+          this.setAnnounce(champ.char.name + ' 拿下比赛！', msub, 260);
         } else {
           this.nextRound();
         }
@@ -758,6 +764,7 @@ var NL = window.NL = window.NL || {};
     for (var i = 0; i < fs.length; i++) {
       NL.draw.fighter(ctx, fs[i], this.time);
     }
+    this.drawWinBubble(ctx);
     this.drawProjectiles(ctx);
     NL.FX.draw(ctx);
     if (NL.debug) this.drawDebug(ctx);
@@ -960,6 +967,52 @@ var NL = window.NL = window.NL || {};
       ctx.fillStyle = '#FFFFFF';
       ctx.fillText(a.sub, 0, 54);
     }
+    ctx.restore();
+  };
+
+  /* 胜利宣言：冠军头顶的漫画气泡 */
+  Battle.prototype.drawWinBubble = function (ctx) {
+    if (this.phase !== 'roundEnd' && this.phase !== 'matchEnd') return;
+    if (this.winnerIdx < 0) return;
+    var w = this.fighters[this.winnerIdx];
+    if (!w || !w.char.winQuote) return;
+    var quote = w.char.winQuote;
+    var k = U.easeOutBack(U.clamp(this.phaseT / 12, 0, 1));
+    if (k <= 0.02) return;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.lineJoin = 'round';
+    ctx.font = '900 30px "Microsoft YaHei", "PingFang SC", sans-serif';
+    var tw = ctx.measureText(quote).width;
+    var bw = Math.max(150, tw + 68), bh = 58, by0 = -bh - 30;
+    var bx = U.clamp(w.x, (NL.WALL_L || -460) + bw / 2 + 10, (NL.WALL_R || 1740) - bw / 2 - 10);
+
+    ctx.translate(bx, w.y - 216 + Math.sin(this.time * 0.07) * 4);
+    ctx.scale(k, k);
+
+    ctx.fillStyle = '#FFFDF2';
+    ctx.strokeStyle = '#5A4318';
+    ctx.lineWidth = 4.5;
+
+    // 小尾巴先画（主体盖住衔接处）
+    ctx.beginPath();
+    ctx.moveTo(-16, by0 + bh - 3);
+    ctx.lineTo(2, -2);
+    ctx.lineTo(18, by0 + bh - 3);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // 气泡主体
+    U.roundRectPath(ctx, -bw / 2, by0, bw, bh, 20);
+    ctx.fill();
+    ctx.stroke();
+
+    // 宣言文字
+    ctx.fillStyle = '#4A3410';
+    ctx.fillText(quote, 0, by0 + bh / 2 + 1);
     ctx.restore();
   };
 

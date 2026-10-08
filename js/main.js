@@ -195,7 +195,7 @@ var NL = window.NL = window.NL || {};
       ctx.textAlign = 'center';
       ctx.font = '700 16px "Microsoft YaHei", sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.8 (M10) · 奶娃九形态 · 📱 横屏触控 · 🎁 看笑了', 640, 706);
+      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.9 (M11) · 奶娃九形态 · 📱 横屏触控 · 🎁 看笑了 · 🗯 胜利宣言', 640, 706);
       ctx.restore();
     }
   };
@@ -681,7 +681,10 @@ var NL = window.NL = window.NL || {};
       if (this.battle.paused) {
         this.drawOverlay(ctx, '暂停中…', ['继续战斗', '重新开始', '回到标题'], this.menuIdx, '奶龙也需要喘口气');
       } else if (this.battle.matchOver) {
-        this.drawOverlay(ctx, '干饭冠军诞生！', ['再战一场', '重选奶龙', '回到标题'], this.menuIdx, '');
+        var b2 = this.battle;
+        var cw = (b2.winnerIdx >= 0) ? b2.fighters[b2.winnerIdx] : null;
+        var q = (cw && cw.char.winQuote) ? ('胜利宣言：\u300c' + cw.char.winQuote + '\u300d') : '';
+        this.drawOverlay(ctx, '干饭冠军诞生！', ['再战一场', '重选奶龙', '回到标题'], this.menuIdx, q);
       }
     },
 

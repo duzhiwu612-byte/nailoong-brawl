@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """用 GitHub Git Data API 推送本地提交（代理不可用但 api.github.com 可达时的应急方案）
-   流程: blobs → tree(base_tree=远端) → commit(parent=远端) → 更新 ref → 验证
-   幂等：远端已等于本地时直接跳过。"""
+   流程: 读远端 tree → 与本地 HEAD 逐文件比对 blob sha → blobs → tree(base_tree=远端) → commit(parent=远端) → 更新 ref → 验证
+   幂等：远端内容已等于本地时直接跳过。远端合成 commit 无需在本地对象库（纯内容寻址比对）。"""
 import base64
 import json
 import os
@@ -48,42 +48,53 @@ def api(method, path, data=None):
         raise RuntimeError('HTTP %d on %s %s: %s' % (e.code, method, path, e.read()[:300]))
 
 local_head = sh(['git', 'rev-parse', 'HEAD']).strip()
-remote_head = api('GET', '/repos/%s/git/ref/heads/main' % REPO)['object']['sha']
 print('local =', local_head)
+
+remote_head = api('GET', '/repos/%s/git/ref/heads/main' % REPO)['object']['sha']
 print('remote=', remote_head)
 if local_head == remote_head:
     print('ALREADY_IN_SYNC')
     sys.exit(0)
-try:
-    sh(['git', 'cat-file', '-t', remote_head])
-except Exception:
-    print('!! 远端 %s 不在本地对象库，需先 fetch 对齐' % remote_head)
-    sys.exit(2)
 
-status = sh(['git', '-c', 'core.quotepath=false', 'diff-tree', '-r', '--name-status', remote_head, local_head])
-changes = []
-for line in status.splitlines():
-    if not line.strip():
-        continue
-    parts = line.split('\t')
-    changes.append((parts[0], parts[-1]))
-print('变更 %d 个文件' % len(changes))
+# —— 远端文件清单（tree API，blob sha 内容寻址；无需本地对象库）——
+rcommit = api('GET', '/repos/%s/git/commits/%s' % (REPO, remote_head))
+rtree = api('GET', '/repos/%s/git/trees/%s?recursive=1' % (REPO, rcommit['tree']['sha']))
+remote_files = {}
+for e in rtree.get('tree', []):
+    if e['type'] == 'blob':
+        remote_files[e['path']] = e['sha']
+if rtree.get('truncated'):
+    print('!! 警告：远端 tree 列表被截断（本仓库很小，一般不会发生）')
+
+# —— 本地文件清单 ——
+local_files = {}
+for line in sh(['git', '-c', 'core.quotepath=false', 'ls-tree', '-r', local_head]).splitlines():
+    meta, path = line.split('\t', 1)
+    mode, typ, sha = meta.split()
+    if typ == 'blob':
+        local_files[path] = sha
+
+changed = sorted(p for p in local_files if remote_files.get(p) != local_files[p])
+deleted = sorted(p for p in remote_files if p not in local_files)
+if not changed and not deleted:
+    print('ALREADY_IN_SYNC（内容一致，仅 commit sha 不同）')
+    sys.exit(0)
+print('变更 %d 个文件（删除 %d 个）' % (len(changed), len(deleted)))
 
 entries = []
-for st, path in changes:
-    if st == 'D':
-        entries.append({'path': path, 'mode': '100644', 'type': 'blob', 'sha': None})
-        print('  D  %s' % path)
-        continue
-    content = sh(['git', 'show', '%s:%s' % (local_head, path)], binary=True)
+for p in changed:
+    content = sh(['git', 'show', '%s:%s' % (local_head, p)], binary=True)
     blob = api('POST', '/repos/%s/git/blobs' % REPO, {
         'content': base64.b64encode(content).decode('ascii'), 'encoding': 'base64'})
-    lst = sh(['git', 'ls-tree', local_head, '--', path]).strip()
+    lst = sh(['git', 'ls-tree', local_head, '--', p]).strip()
     mode = lst.split()[0] if lst else '100644'
-    entries.append({'path': path, 'mode': mode, 'type': 'blob', 'sha': blob['sha']})
-    print('  %s  %-46s %6d B' % (st, path, len(content)))
+    entries.append({'path': p, 'mode': mode, 'type': 'blob', 'sha': blob['sha']})
+    print('  M  %-46s %6d B' % (p, len(content)))
+for p in deleted:
+    entries.append({'path': p, 'mode': '100644', 'type': 'blob', 'sha': None})
+    print('  D  %s' % p)
 
-base_tree = api('GET', '/repos/%s/git/commits/%s' % (REPO, remote_head))['tree']['sha']
+base_tree = rcommit['tree']['sha']
 tree = api('POST', '/repos/%s/git/trees' % REPO, {'base_tree': base_tree, 'tree': entries})
 msg = sh(['git', 'log', '-1', '--format=%B', local_head]).strip() or 'update'
 commit = api('POST', '/repos/%s/git/commits' % REPO, {

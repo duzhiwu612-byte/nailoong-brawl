@@ -92,6 +92,15 @@ check('彩蛋角色不在九宫格 charOrder 中（独立竖卡）', NL.charOrde
 check('九形态齐备（慈爱/暗黑/愤怒/战斗/奶龙/空虚/温柔/神龙/忧郁）',
   NL.charOrder.join(',') === 'loving,dark,rage,war,nailoong,void,tender,divine,sad' && !!NL.chars.sad.moves.super);
 
+// ============ 1.5 胜利宣言（winQuote） ============
+console.log('\n== 胜利宣言 ==');
+const ALL_IDS = NL.charOrder.concat([NL.bonusId || 'xiaole']);
+check('全部 ' + ALL_IDS.length + ' 角色都有胜利宣言', ALL_IDS.every(id => {
+  const q = NL.chars[id] && NL.chars[id].winQuote;
+  return typeof q === 'string' && q.length >= 2;
+}));
+check('「看笑了」的宣言就是「看笑了」', NL.chars.xiaole.winQuote === '看笑了');
+
 let moveCount = 0, dataErr = [];
 for (const id of NL.charOrder) {
   const ch = NL.chars[id];
@@ -442,6 +451,27 @@ const f2 = fuzz('loving', 'dark', 1, 60 * 300);
 check('AI 对打(慈爱 vs 暗黑)无异常', !f2.err, f2.err || '');
 const f3 = fuzz('divine', 'sad', 2, 60 * 300);
 check('AI 对打(神龙 vs 忧郁)无异常', !f3.err, f3.err || '');
+
+// ============ 10.5 胜利宣言流程 ============
+console.log('\n== 胜利宣言流程 ==');
+let wqErr = null, wqSub = '', wqMatchSub = '', wqPhase = '';
+try {
+  const bb2 = new NL.Battle({ mode: 'ai', difficulty: 0, p1: 'xiaole', p2: 'loving' });
+  bb2.roundsToWin = 1;
+  bb2.startEnd(0, 'ko');
+  let g1 = 0;
+  while (bb2.phase === 'ko' && g1++ < 800) bb2.update();
+  wqPhase = bb2.phase;
+  wqSub = bb2.announce ? bb2.announce.sub : '';
+  bb2.draw(actx); // roundEnd：胜利气泡
+  let g2 = 0;
+  while (bb2.phase !== 'matchEnd' && g2++ < 1000) bb2.update();
+  wqMatchSub = bb2.announce ? bb2.announce.sub : '';
+  bb2.draw(actx); // matchEnd：气泡仍在
+} catch (e) { wqErr = e.message + ' @' + (e.stack || '').split('\n')[1]; }
+check('KO 后进入 roundEnd，播报带「看笑了」宣言', wqPhase === 'roundEnd' && wqSub.indexOf('看笑了') >= 0, wqPhase + ' | ' + wqSub);
+check('拿下比赛后播报「胜利宣言：「看笑了」」', wqMatchSub.indexOf('胜利宣言') >= 0 && wqMatchSub.indexOf('看笑了') >= 0, wqMatchSub);
+check('胜利气泡绘制无异常（roundEnd + matchEnd）', !wqErr, wqErr || '');
 
 // ============ 11. 渲染冒烟 ============
 console.log('\n== 渲染冒烟 ==');
