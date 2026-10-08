@@ -82,6 +82,11 @@ var NL = window.NL = window.NL || {};
       noise({ ftype: 'lowpass', f0: 700, dur: 0.12, vol: 0.3 });
     },
     block: function () { tone({ type: 'square', f0: 950, f1: 700, dur: 0.06, vol: 0.15 }); },
+    clash: function () {
+      tone({ type: 'square', f0: 1500, f1: 950, dur: 0.05, vol: 0.16 });
+      tone({ type: 'square', f0: 2050, f1: 1350, dur: 0.08, vol: 0.12, delay: 0.02 });
+      noise({ ftype: 'highpass', f0: 2600, dur: 0.05, vol: 0.12 });
+    },
     jump: function () { tone({ type: 'sine', f0: 300, f1: 640, dur: 0.12, vol: 0.16 }); },
     land: function () { noise({ ftype: 'lowpass', f0: 320, dur: 0.08, vol: 0.25 }); },
     dash: function () { noise({ ftype: 'bandpass', f0: 600, f1: 2000, dur: 0.14, vol: 0.16 }); },

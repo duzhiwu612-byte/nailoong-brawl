@@ -56,7 +56,7 @@ sandbox.document = {
 vm.createContext(sandbox);
 
 console.log('== 脚本加载 ==');
-const FILES = ['util', 'audio', 'input', 'effects', 'render', 'characters', 'fighter', 'ai', 'stage', 'battle', 'main'];
+const FILES = ['util', 'audio', 'input', 'effects', 'render', 'characters', 'fighter', 'ai', 'stage', 'battle', 'net', 'main'];
 let loadErr = null;
 for (const f of FILES) {
   try {
@@ -68,7 +68,7 @@ for (const f of FILES) {
     break;
   }
 }
-check('全部 11 个脚本加载无异常', !loadErr, loadErr || '');
+check('全部 12 个脚本加载无异常', !loadErr, loadErr || '');
 if (loadErr) { console.log('\n加载失败，终止测试。'); process.exit(1); }
 
 const NL = sandbox.NL;
@@ -428,6 +428,141 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
   check('看笑了必杀：山砸落后爆出碎屏旧机', !err && !!seen.oldphone, Object.keys(seen).join(','));
   check('看笑了必杀：命中对手（伤害 ≥95）', dmg >= 95, 'dmg=' + dmg);
 })();
+(function () {
+  // 弹道对撞：双方弹道相遇互相抵消
+  let err = null, before = -1, after = -1, dmgA = -1, dmgB = -1;
+  try {
+    const bb = new NL.Battle({ mode: '2p', p1: 'loving', p2: 'dark' });
+    for (let i = 0; i < 120; i++) bb.update();
+    bb.p1.x = 400; bb.p2.x = 900;
+    bb.spawnProjectile({ type: 'heart', x: 500, y: 520, dir: 1, vy: 0, owner: bb.p1 });
+    bb.spawnProjectile({ type: 'darkorb', x: 800, y: 520, dir: -1, vy: 0, owner: bb.p2 });
+    before = bb.projectiles.length;
+    const h1 = bb.p1.hp, h2 = bb.p2.hp;
+    for (let i = 0; i < 60; i++) bb.update();
+    after = bb.projectiles.length;
+    dmgA = h1 - bb.p1.hp; dmgB = h2 - bb.p2.hp;
+  } catch (e) { err = e.message; }
+  check('弹道对撞：双向弹道相遇后互相抵消（' + before + ' → ' + after + '）', !err && before === 2 && after === 0, err || '');
+  check('弹道对撞：抵消后无人掉血', dmgA === 0 && dmgB === 0, 'dmg=' + dmgA + '/' + dmgB);
+})();
+(function () {
+  // 高级弹道（旧手机山 prio2）吃普通弹道后继续飞
+  let err = null, bigSurvived = false, smallGone = false;
+  try {
+    const bb = new NL.Battle({ mode: '2p', p1: 'xiaole', p2: 'loving' });
+    for (let i = 0; i < 120; i++) bb.update();
+    bb.spawnProjectile({ type: 'phonemountain', x: 700, y: 180, dir: 1, vy: 400, owner: bb.p1 });
+    bb.spawnProjectile({ type: 'heart', x: 520, y: 330, dir: 1, vy: 0, owner: bb.p2 });
+    let heartSeen = true, bigSeen = false;
+    for (let i = 0; i < 30; i++) {
+      bb.update();
+      let hasBig = false, hasHeart = false;
+      for (const q of bb.projectiles) { if (q.type === 'phonemountain') hasBig = true; if (q.type === 'heart') hasHeart = true; }
+      if (hasBig) bigSeen = true;
+      if (bigSeen && !hasHeart) { smallGone = true; }
+      if (bigSeen && !hasHeart) { bigSurvived = hasBig; break; }
+    }
+    // 再跑几帧确认山还在（未被普通弹道抵消）
+    for (let i = 0; i < 6; i++) bb.update();
+    let stillBig = false;
+    for (const q of bb.projectiles) if (q.type === 'phonemountain') stillBig = true;
+    bigSurvived = bigSurvived && stillBig;
+  } catch (e) { err = e.message; }
+  check('弹道对撞：旧手机山吃掉普通弹道并继续飞', !err && smallGone && bigSurvived, err || ('smallGone=' + smallGone + ' big=' + bigSurvived));
+})();
+
+// ============ 10.8 联机核心（协议 + 锁步） ============
+console.log('\n== 联机核心 ==');
+(function () {
+  const dm = NL.netUtil.decodeMask;
+  const m1 = 1 | 2 | 4 | 8 | 16 | 32 | 64 | 128 | 256 | 512 | 1024;
+  const d1 = dm(m1);
+  check('输入掩码解码：方向+五键+虚步左', d1.left && d1.right && d1.up && d1.down && d1.pUp && d1.pLight &&
+    d1.pHeavy && d1.pSkill1 && d1.pSkill2 && d1.pSup && d1.pDash === -1 && !d1.pDown);
+  const d2 = dm(2048);
+  check('输入掩码解码：虚步右', d2.pDash === 1 && !d2.left && !d2.pLight);
+  const d3 = dm(0);
+  check('输入掩码解码：中立输入全零', !d3.left && !d3.up && d3.pDash === 0 && !d3.pSup);
+})();
+(function () {
+  const s = NL.netUtil.makeSampler();
+  NL.Input.clearEdges();
+  NL.Input.setKey('KeyD', true);
+  let m = s.sample();
+  check('采样器：按住 D → 右方向位', !!(m & 2) && !(m & 1));
+  let m2 = s.sample();
+  check('采样器：持续按住不产生重复虚步', ((m2 >> 10) & 3) === 0);
+  NL.Input.setKey('KeyD', false); s.sample();
+  NL.Input.setKey('KeyD', true); m2 = s.sample();
+  check('采样器：双击右键 → 虚步位=右', ((m2 >> 10) & 3) === 2, 'm=' + m2);
+  NL.Input.setKey('KeyD', false); s.sample(); s.sample();
+  NL.Input.setKey('KeyJ', true);
+  const mj = s.sample();
+  check('采样器：J 按下沿 → pLight 位', !!(mj & 32), 'm=' + mj);
+  const mj2 = s.sample();
+  check('采样器：J 持续按住不重复', !(mj2 & 32));
+  NL.Input.setKey('KeyJ', false); s.sample();
+})();
+(function () {
+  // 完整联机流程（内存假链路）：握手 → 选人 → 开战 → 锁步 300 帧 → 状态哈希一致
+  let err = null, connBoth = false, starts = 0;
+  let hF = 0, gF = 0, hHash = 0, gHash = 0;
+  try {
+    const A = new NL.NetCore();  // 房主 = P1
+    const B = new NL.NetCore();  // 客人 = P2
+    A._linkFake(B); B._linkFake(A);
+    A.isHost = true; B.isHost = false;
+    A.state = 'connected'; B.state = 'connected';
+    let aConn = false, bConn = false;
+    A.onEvent = (ev) => { if (ev === 'connected') aConn = true; if (ev === 'start') starts++; };
+    B.onEvent = (ev) => { if (ev === 'connected') bConn = true; if (ev === 'start') starts++; };
+    B._send({ t: 'hi', v: NL.netUtil.NET_VER });
+    connBoth = aConn && bConn;
+    A.pick('nailoong');
+    B.pick('rage');
+    const bA = new NL.Battle({ mode: 'net', p1: A.picks[0], p2: A.picks[1] });
+    const bB = new NL.Battle({ mode: 'net', p1: B.picks[0], p2: B.picks[1] });
+    A.battleInit(bA); B.battleInit(bB);
+    // 脚本化输入（房主：右移 + 周期性轻击；客人：左移 + 周期轻击）
+    A._samplerOverride = () => { const f = A._frame; let m = 2; if (f % 50 === 10) m |= 32; return m; };
+    B._samplerOverride = () => { const f = B._frame; let m = 1; if (f % 40 === 7) m |= 32; return m; };
+    for (let i = 0; i < 4000 && (A._frame < 300 || B._frame < 300); i++) {
+      A.step(bA); B.step(bB);
+    }
+    hF = A._frame; gF = B._frame;
+    const hash = (b) => {
+      let h = 0;
+      h = (h * 31 + Math.round(b.p1.x * 100)) | 0;
+      h = (h * 31 + Math.round(b.p2.x * 100)) | 0;
+      h = (h * 31 + Math.round(b.p1.hp)) | 0;
+      h = (h * 31 + Math.round(b.p2.hp)) | 0;
+      h = (h * 31 + Math.round(b.p1.energy)) | 0;
+      h = (h * 31 + Math.round(b.p2.energy)) | 0;
+      h = (h * 31 + b.round) | 0;
+      h = (h * 31 + b.wins[0] * 7 + b.wins[1]) | 0;
+      h = (h * 31 + b.p1.state.length + b.p2.state.length) | 0;
+      return h;
+    };
+    hHash = hash(bA); gHash = hash(bB);
+  } catch (e) { err = e.message + ' @' + (e.stack || '').split('\n')[1]; }
+  check('联机：握手互连 + 双方各收到 start', !err && connBoth && starts === 2, 'conn=' + connBoth + ' starts=' + starts + (err ? ' err=' + err : ''));
+  check('联机：锁步同步推进到 300 帧（房主=' + hF + ' 客人=' + gF + '）', !err && hF === 300 && gF === 300);
+  check('联机：300 帧后双方状态哈希一致（' + hHash + ' vs ' + gHash + '）', !err && hHash === gHash && hHash !== 0);
+})();
+(function () {
+  let err = null, closedEvt = false;
+  try {
+    const A = new NL.NetCore(), B = new NL.NetCore();
+    A._linkFake(B); B._linkFake(A);
+    A.isHost = true; B.isHost = false; A.state = 'connected'; B.state = 'connected';
+    A.onEvent = (ev) => { if (ev === 'closed') closedEvt = true; };
+    B.quit();
+  } catch (e) { err = e.message; }
+  check('联机：对方退出 → 收到断线事件', !err && closedEvt, err || '');
+})();
+
+// ============ 11. 渲染冒烟 ============
 
 // ============ 9. 全角色 × 全招式 冒烟 ============
 console.log('\n== 全角色全招式冒烟 ==');

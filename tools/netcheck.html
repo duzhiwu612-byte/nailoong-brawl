@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>奶龙大乱斗 - 联机自检</title>
+  <style>
+    html, body { margin: 0; padding: 0; background: #14100a; color: #FFE066;
+      font-family: "Microsoft YaHei", monospace; }
+    #log { padding: 16px; font-size: 14px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <div id="log"></div>
+  <script src="../js/util.js"></script>
+  <script src="../js/audio.js"></script>
+  <script src="../js/input.js"></script>
+  <script src="../js/effects.js"></script>
+  <script src="../js/render.js"></script>
+  <script src="../js/characters.js"></script>
+  <script src="../js/fighter.js"></script>
+  <script src="../js/ai.js"></script>
+  <script src="../js/stage.js"></script>
+  <script src="../js/battle.js"></script>
+  <script src="../js/net.js"></script>
+  <script>
+    (function () {
+      var qs = location.search || '';
+      function qp(name, dflt) {
+        var m = new RegExp('[?&]' + name + '=([^&]+)').exec(qs);
+        return m ? decodeURIComponent(m[1]) : dflt;
+      }
+      var ROLE = qp('role', 'fake');
+      var CODE = qp('code', 'QATE');
+      var FRAMES = parseInt(qp('frames', '600'), 10);
+      function log(s) {
+        console.log('[NETCHECK] ' + s);
+        try { document.getElementById('log').textContent += s + '\n'; } catch (e) {}
+      }
+      function hash(b) {
+        var h = 0;
+        h = (h * 31 + Math.round(b.p1.x * 100)) | 0;
+        h = (h * 31 + Math.round(b.p2.x * 100)) | 0;
+        h = (h * 31 + Math.round(b.p1.hp)) | 0;
+        h = (h * 31 + Math.round(b.p2.hp)) | 0;
+        h = (h * 31 + Math.round(b.p1.energy)) | 0;
+        h = (h * 31 + Math.round(b.p2.energy)) | 0;
+        h = (h * 31 + b.round) | 0;
+        h = (h * 31 + b.wins[0] * 7 + b.wins[1]) | 0;
+        h = (h * 31 + b.p1.state.length + b.p2.state.length) | 0;
+        return h;
+      }
+
+      /* ============ 假链路模式：同页两个 NetCore，同步内存链路 ============ */
+      if (ROLE === 'fake') {
+        var A = new NL.NetCore();   // 房主 = P1
+        var B = new NL.NetCore();   // 客人 = P2
+        A._linkFake(B); B._linkFake(A);
+        A.isHost = true; B.isHost = false;
+        A.state = 'connected'; B.state = 'connected';
+        var aConn = false, bConn = false, aStart = false, bStart = false;
+        A.onEvent = function (ev) { if (ev === 'connected') aConn = true; if (ev === 'start') aStart = true; };
+        B.onEvent = function (ev) { if (ev === 'connected') bConn = true; if (ev === 'start') bStart = true; };
+        B._send({ t: 'hi', v: NL.netUtil.NET_VER });
+        A.pick('nailoong');
+        B.pick('rage');
+        var bA = new NL.Battle({ mode: 'net', p1: A.picks[0], p2: A.picks[1] });
+        var bB = new NL.Battle({ mode: 'net', p1: B.picks[0], p2: B.picks[1] });
+        A.battleInit(bA); B.battleInit(bB);
+        A._samplerOverride = function () { var f = A._frame; var m = 2; if (f % 60 === 30) m |= 32; if (f % 97 === 3) m |= 1024; return m; };
+        B._samplerOverride = function () { var f = B._frame; var m = 1; if (f % 45 === 7) m |= 32; if (f % 83 === 5) m |= 2048; return m; };
+        var guard = 0;
+        while (guard++ < 20000 && (A._frame < FRAMES || B._frame < FRAMES)) { A.step(bA); B.step(bB); }
+        var hA = hash(bA), hB = hash(bB);
+        log('SYNCLINK conn=' + aConn + '/' + bConn + ' start=' + aStart + '/' + bStart +
+          ' frames=' + A._frame + '/' + B._frame + ' hash=' + hA + '/' + hB +
+          ' MATCH=' + (hA === hB) + ' hp=' + Math.round(bA.p1.hp) + '/' + Math.round(bA.p2.hp));
+        log('ALLDONE');
+        return;
+      }
+
+      /* ============ 真实联机模式：PeerJS 云信令 + WebRTC 数据通道 ============ */
+      var b2 = null, done = false, lastLogged = -1;
+      var myChar = (ROLE === 'host') ? 'nailoong' : 'rage';
+      function script(f) {
+        var I = NL.Input;
+        I.setKey('KeyD', f < 200);
+        I.setKey('KeyA', f >= 200 && f < 400);
+        I.setKey('KeyJ', (f % 60) === 30);
+      }
+      NL.Net.onEvent = function (ev) {
+        if (ev === 'connected') {
+          log('CONNECTED role=' + ROLE);
+          NL.Net.pick(myChar);
+        } else if (ev === 'start') {
+          log('START role=' + ROLE + ' p1=' + NL.Net.picks[0] + ' p2=' + NL.Net.picks[1]);
+          b2 = new NL.Battle({ mode: 'net', p1: NL.Net.picks[0], p2: NL.Net.picks[1] });
+          NL.Net.battleInit(b2);
+          setTimeout(stepLoop, 10);
+        } else if (ev === 'closed') {
+          log('CLOSED role=' + ROLE + ' atFrame=' + NL.Net._frame);
+        } else if (ev === 'error') {
+          log('ERROR role=' + ROLE + ' ' + NL.Net.err);
+        }
+      };
+      function stepLoop() {
+        if (done) return;
+        var f = NL.Net._frame;
+        script(f);
+        NL.Net.step(b2);
+        if (NL.Net._frame !== f && NL.Net._frame % 100 === 0 && NL.Net._frame !== lastLogged) {
+          lastLogged = NL.Net._frame;
+          log('PROG role=' + ROLE + ' f=' + NL.Net._frame + ' hash=' + hash(b2));
+        }
+        if (NL.Net._frame >= FRAMES) { finish(); return; }
+        setTimeout(stepLoop, 4);
+      }
+      function finish() {
+        done = true;
+        log('DONE role=' + ROLE + ' frames=' + NL.Net._frame + ' hash=' + hash(b2) +
+          ' hp=' + Math.round(b2.p1.hp) + '/' + Math.round(b2.p2.hp) +
+          ' x=' + Math.round(b2.p1.x) + '/' + Math.round(b2.p2.x));
+        log('ALLDONE');
+      }
+      if (ROLE === 'host') NL.Net.host(CODE);
+      else NL.Net.join(CODE);
+    })();
+  </script>
+</body>
+</html>

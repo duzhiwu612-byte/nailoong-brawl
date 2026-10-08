@@ -360,7 +360,10 @@ var NL = window.NL = window.NL || {};
     }
     if (g.scene === g.scenes.select) {
       var sc = g.scenes.select;
-      if (!sc || sc.picking !== 0) return;
+      if (!sc) return;
+      var aiOpp = (NL.game.mode.type === 'ai' && sc.picking === 1);
+      if (sc.picking !== 0 && !aiOpp) return;
+      if (sc.netPicked) return;   // 联机已选完，等对方
       var cw = 292, chh = 178, gap = 18, rowGap = 14;
       var startX = (1280 - 3 * cw - 2 * gap) / 2;
       var rowY = [96, 96 + chh + rowGap, 96 + (chh + rowGap) * 2];
@@ -380,6 +383,24 @@ var NL = window.NL = window.NL || {};
         sc.cursor[sc.picking] = NL.charOrder.length;
         NL.SFX && NL.SFX.play && NL.SFX.play('select');
         keyTap('KeyJ');
+      } else if (aiOpp && x >= 1006 && x <= 1256 && y >= 658 && y <= 706) {
+        // 🎲 随机对手（选对手阶段）
+        sc.cursor[1] = Math.floor(Math.random() * (NL.charOrder.length + 1));
+        NL.SFX && NL.SFX.play && NL.SFX.play('select');
+        keyTap('KeyJ');
+      }
+      return;
+    }
+    if (g.scene === g.scenes.net) {
+      var ns = g.scenes.net;
+      if (!ns || !ns.regions) return;
+      for (var ni = 0; ni < ns.regions.length; ni++) {
+        var rg = ns.regions[ni];
+        if (x >= rg.x && x <= rg.x + rg.w && y >= rg.y && y <= rg.y + rg.h) {
+          NL.SFX && NL.SFX.play && NL.SFX.play('select');
+          ns.doAction(rg.act);
+          break;
+        }
       }
       return;
     }

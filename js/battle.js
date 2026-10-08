@@ -33,7 +33,7 @@ var NL = window.NL = window.NL || {};
     phone: { r: 17, speed: 495, damage: 56, hitstun: 18, kbx: 300, kvy: -200, life: 95, g: 120, blockable: true },
     phonespin: { r: 22, speed: 520, damage: 84, hitstun: 20, kbx: 370, kvy: -230, life: 150, g: 0, blockable: true, returns: 400 },
     /* v0.9.2 看笑了必杀：旧手机山（天降）+ 爆机散落的碎屏旧机 */
-    phonemountain: { r: 56, speed: 0, damage: 95, hitstun: 26, kbx: 420, kvy: -300, life: 220, g: 1700, blockable: true },
+    phonemountain: { r: 56, speed: 0, damage: 95, hitstun: 26, kbx: 420, kvy: -300, life: 220, g: 1700, blockable: true, prio: 2 },
     oldphone: { r: 15, speed: 250, damage: 15, hitstun: 14, kbx: 130, kvy: -170, life: 60, g: 900, blockable: true },
     /* v0.6 奶娃九形态专属弹道 */
     heart: { r: 22, speed: 470, damage: 62, hitstun: 18, kbx: 340, kvy: -260, life: 100, g: 40, blockable: true },
@@ -51,7 +51,7 @@ var NL = window.NL = window.NL || {};
     this.stage = new NL.Stage('village');
 
     var s1 = { type: 'keyboard', player: 0 };
-    var s2 = (this.mode === '2p') ? { type: 'keyboard', player: 1 } : new NL.AI(cfg.difficulty || 0);
+    var s2 = (this.mode === '2p' || this.mode === 'net') ? { type: 'keyboard', player: 1 } : new NL.AI(cfg.difficulty || 0);
 
     this.fighters = [
       new NL.Fighter({ charId: cfg.p1, playerIndex: 0, source: s1, x: 430, facing: 1 }),
@@ -295,6 +295,39 @@ var NL = window.NL = window.NL || {};
           if (p.type === 'phonemountain') this.shatterMountain(p);
           ps.splice(i, 1);
           break;
+        }
+      }
+    }
+
+    /* —— 弹道对撞：双方弹道相遇互相抵消（prio 高的吃掉 prio 低的） —— */
+    if (ps.length > 1) {
+      var clashed = false;
+      for (var ci = ps.length - 1; ci >= 0; ci--) {
+        var cp = ps[ci];
+        if (cp.gone) continue;
+        for (var cj = ci - 1; cj >= 0; cj--) {
+          var cq = ps[cj];
+          if (cq.gone || cq.owner === cp.owner) continue;
+          var mdx = cp.x - cq.x, mdy = cp.y - cq.y;
+          var mrr = (cp.r + cq.r) * 0.92;
+          if (mdx * mdx + mdy * mdy > mrr * mrr) continue;
+          var mx = (cp.x + cq.x) / 2, my = (cp.y + cq.y) / 2;
+          var cpi = cp.def.prio || 1, cqi = cq.def.prio || 1;
+          if (cpi > cqi) cq.gone = true;
+          else if (cqi > cpi) cp.gone = true;
+          else { cp.gone = true; cq.gone = true; }
+          NL.FX.cue(mx, my, 'poof', (cp.x >= cq.x) ? 1 : -1);
+          NL.FX.cue(mx, my + 14, 'poof', (cp.x >= cq.x) ? -1 : 1);
+          NL.SFX.play('clash');
+          this.hitstop = Math.max(this.hitstop, 2);
+          NL.FX.shake(3);
+          clashed = true;
+          if (cp.gone) break;
+        }
+      }
+      if (clashed) {
+        for (var ck = ps.length - 1; ck >= 0; ck--) {
+          if (ps[ck].gone) ps.splice(ck, 1);
         }
       }
     }

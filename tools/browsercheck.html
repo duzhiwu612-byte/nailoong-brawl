@@ -34,6 +34,7 @@
   <script src="../js/ai.js"></script>
   <script src="../js/stage.js"></script>
   <script src="../js/battle.js"></script>
+  <script src="../js/net.js"></script>
   <script src="../js/main.js"></script>
   <script src="../js/touch.js"></script>
   <script>
@@ -334,6 +335,67 @@
           }
           log('mountain2: projs=' + mb2.projectiles.map(function (q) { return q.type + '@' + Math.round(q.x) + ',' + Math.round(q.y); }).join('|'));
           NL.game.scenes.battle.update = function () {};       // 定格，方便截图
+        } else if (target === 'clash') {
+          // 弹道对撞：双方弹道相遇互消，定格看白烟
+          NL.game.pendingCfg = { mode: '2p', p1: 'nailoong', p2: 'dark' };
+          NL.game.go('battle');
+          var cb = NL.game.scenes.battle.battle;
+          for (var ci2 = 0; ci2 < 130; ci2++) cb.update();
+          cb.p1.x = 430; cb.p2.x = 900;
+          cb.spawnProjectile({ type: 'milkbottle', x: 560, y: 495, dir: 1, vy: -50, owner: cb.p1 });
+          cb.spawnProjectile({ type: 'darkorb', x: 870, y: 495, dir: -1, vy: -50, owner: cb.p2 });
+          var cg = 0, clashAt = -1;
+          while (cg++ < 200) {
+            var n0 = cb.projectiles.length;
+            cb.update();
+            if (n0 === 2 && cb.projectiles.length === 0) { clashAt = cg; break; }
+          }
+          for (var ck2 = 0; ck2 < 4; ck2++) cb.update();   // 烟再飘一点
+          log('clash: at=' + clashAt + ' projsLeft=' + cb.projectiles.length);
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'aipick') {
+          // 自选 AI 对手：完整流程（选自己→选对手→随机→开战）+ 定格选对手界面截图
+          NL.game.mode.type = 'ai';
+          NL.game.go('select');
+          var asp = NL.game.scenes.select;
+          var k2 = function (code) { window.dispatchEvent(new KeyboardEvent('keydown', { code: code })); };
+          var ku2 = function (code) { window.dispatchEvent(new KeyboardEvent('keyup', { code: code })); };
+          for (var w0 = 0; w0 < 5; w0++) { asp.update(); }   // 消化 boot 期间杂键
+          k2('KeyJ'); asp.update(); ku2('KeyJ'); asp.update();
+          var picked1 = asp.picking;
+          k2('KeyK'); asp.update(); ku2('KeyK');
+          var randIdx = asp.cursor[1];
+          k2('KeyJ'); asp.update(); ku2('KeyJ'); asp.update();
+          var inBattle = (NL.game.scene === NL.game.scenes.battle);
+          log('aipick: pickingAfterP1=' + picked1 + ' randIdx=' + randIdx +
+            ' scene=' + (inBattle ? 'battle' : '?') +
+            ' p1=' + (NL.game.pendingCfg && NL.game.pendingCfg.p1) +
+            ' p2=' + (NL.game.pendingCfg && NL.game.pendingCfg.p2));
+          // 重新进入，摆出"选择对手"定格画面
+          NL.game.mode.type = 'ai';
+          NL.game.go('select');
+          asp = NL.game.scenes.select;
+          for (var w1 = 0; w1 < 5; w1++) { asp.update(); }
+          k2('KeyJ'); asp.update(); ku2('KeyJ'); asp.update();
+          k2('KeyK'); asp.update(); ku2('KeyK'); asp.update();
+          log('aipick-freeze: picking=' + asp.picking + ' cursor1=' + asp.cursor[1]);
+          NL.game.scenes.select.update = function () {};
+        } else if (target === 'netmenu') {
+          // 联机大厅：菜单
+          NL.game.go('net');
+          log('netmenu: state=' + NL.Net.state);
+        } else if (target === 'nethost') {
+          // 联机大厅：房主房间码界面（纯展示状态）
+          NL.game.go('net');
+          NL.Net.state = 'hosting';
+          NL.Net.code = 'KUA1';
+          NL.Net.isHost = true;
+          log('nethost: code=' + NL.Net.code);
+        } else if (target === 'netjoin') {
+          // 联机大厅：加入房间（输入框）
+          NL.game.go('net');
+          NL.game.scenes.net.showInput();
+          log('netjoin: inputShown=' + (NL.game.scenes.net.inp.style.display === 'block'));
         } else if (target === 'mode') {
           NL.game.go('mode');
         } else {
