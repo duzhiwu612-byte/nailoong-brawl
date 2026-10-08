@@ -601,6 +601,17 @@ var NL = window.NL = window.NL || {};
     var dir = this.facing;
     var n = sp.count || 1;
     var S = NL.MODEL_SCALE || 1;
+    // 看笑了必杀·天降旧手机山：从高空瞄准对手当前位置砸下
+    if (sp.type === 'phonemountain') {
+      var opp = this.battle.fighters[1 - this.playerIndex];
+      var tx = U.clamp(opp ? opp.x : this.x + dir * 220, NL.WALL_L + 150, NL.WALL_R - 150);
+      this.battle.spawnProjectile({
+        type: 'phonemountain', x: tx, y: NL.GROUND - 1000, dir: dir, vy: 760, owner: this
+      });
+      NL.SFX.play('swing');
+      NL.FX.cue(this.x + dir * 48 * S, this.y - 100 * S, 'poof', dir);
+      return;
+    }
     for (var i = 0; i < n; i++) {
       var off = (n > 1) ? (i - (n - 1) / 2) : 0;
       var vy = 0;

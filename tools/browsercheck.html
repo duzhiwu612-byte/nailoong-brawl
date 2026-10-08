@@ -293,6 +293,47 @@
           var pl = pb.projectiles.map(function (q) { return q.type + '@' + Math.round(q.x) + ',' + Math.round(q.y); });
           log('phones: projs=[' + pl.join(' | ') + '] n=' + pl.length);
           NL.game.scenes.battle.update = function () {};       // 定格，方便截图
+        } else if (target === 'mountain') {
+          // 必杀·天降旧手机山：砸落途中定格
+          NL.game.pendingCfg = { mode: '2p', p1: 'xiaole', p2: 'loving' };
+          NL.game.go('battle');
+          var mb = NL.game.scenes.battle.battle;
+          for (var mi2 = 0; mi2 < 130; mi2++) mb.update();
+          mb.p1.x = 520; mb.p2.x = 690;
+          mb.p1.energy = 100;
+          mb.p1.startAttack('super');
+          var guardM = 0;
+          while (guardM++ < 400) {
+            mb.update();
+            var mfound = null;
+            for (var qi = 0; qi < mb.projectiles.length; qi++) {
+              if (mb.projectiles[qi].type === 'phonemountain') mfound = mb.projectiles[qi];
+            }
+            if (mfound && mfound.y > 300) break;   // 山体压到对手头顶 → 定格
+          }
+          log('mountain: projs=' + mb.projectiles.map(function (q) { return q.type + '@' + Math.round(q.x) + ',' + Math.round(q.y); }).join('|'));
+          NL.game.scenes.battle.update = function () {};       // 定格，方便截图
+        } else if (target === 'mountain2') {
+          // 必杀·旧手机山砸中瞬间：爆机散落定格
+          NL.game.pendingCfg = { mode: '2p', p1: 'xiaole', p2: 'loving' };
+          NL.game.go('battle');
+          var mb2 = NL.game.scenes.battle.battle;
+          for (var mi3 = 0; mi3 < 130; mi3++) mb2.update();
+          mb2.p1.x = 520; mb2.p2.x = 690;
+          mb2.p1.energy = 100;
+          mb2.p1.startAttack('super');
+          var g2 = 0, wasThere = false;
+          while (g2++ < 500) {
+            mb2.update();
+            var nowThere = false;
+            for (var qj = 0; qj < mb2.projectiles.length; qj++) {
+              if (mb2.projectiles[qj].type === 'phonemountain') nowThere = true;
+            }
+            if (wasThere && !nowThere) { for (var qk = 0; qk < 16; qk++) mb2.update(); break; }
+            wasThere = nowThere;
+          }
+          log('mountain2: projs=' + mb2.projectiles.map(function (q) { return q.type + '@' + Math.round(q.x) + ',' + Math.round(q.y); }).join('|'));
+          NL.game.scenes.battle.update = function () {};       // 定格，方便截图
         } else if (target === 'mode') {
           NL.game.go('mode');
         } else {

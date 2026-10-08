@@ -32,6 +32,9 @@ var NL = window.NL = window.NL || {};
     /* v0.9.1 看笑了专属：手机（数值与奶瓶/奶嘴一一对应，仅外观不同） */
     phone: { r: 17, speed: 495, damage: 56, hitstun: 18, kbx: 300, kvy: -200, life: 95, g: 120, blockable: true },
     phonespin: { r: 22, speed: 520, damage: 84, hitstun: 20, kbx: 370, kvy: -230, life: 150, g: 0, blockable: true, returns: 400 },
+    /* v0.9.2 看笑了必杀：旧手机山（天降）+ 爆机散落的碎屏旧机 */
+    phonemountain: { r: 56, speed: 0, damage: 95, hitstun: 26, kbx: 420, kvy: -300, life: 220, g: 1700, blockable: true },
+    oldphone: { r: 15, speed: 250, damage: 15, hitstun: 14, kbx: 130, kvy: -170, life: 60, g: 900, blockable: true },
     /* v0.6 奶娃九形态专属弹道 */
     heart: { r: 22, speed: 470, damage: 62, hitstun: 18, kbx: 340, kvy: -260, life: 100, g: 40, blockable: true },
     darkorb: { r: 24, speed: 520, damage: 68, hitstun: 19, kbx: 360, kvy: -240, life: 95, g: 0, blockable: true },
@@ -211,6 +214,24 @@ var NL = window.NL = window.NL || {};
     });
   };
 
+  /* 旧手机山砸落：大震屏 + 四散爆机（碎屏旧机飞一地） */
+  Battle.prototype.shatterMountain = function (p) {
+    NL.FX.shake(15);
+    var gy = Math.min(p.y, NL.GROUND - 60);
+    for (var k = 0; k < 5; k++) {
+      this.spawnProjectile({
+        type: 'oldphone',
+        x: p.x + (k - 2) * 42,
+        y: gy,
+        dir: (k % 2 === 0) ? 1 : -1,
+        vy: -180 - (k % 3) * 70,
+        owner: p.owner
+      });
+    }
+    NL.FX.cue(p.x, gy - 10, 'poof', -1);
+    NL.FX.cue(p.x + 30, gy - 4, 'poof', 1);
+  };
+
   Battle.prototype.updateProjectiles = function () {
     var ps = this.projectiles;
     for (var i = ps.length - 1; i >= 0; i--) {
@@ -232,8 +253,9 @@ var NL = window.NL = window.NL || {};
             rocketfist: 'flame', rocket: 'flame', bubble: 'poof',
             heart: 'poof', darkorb: 'poof', flame: 'flame', blade: 'poof',
             petal: 'poof', voidorb: 'poof', tear: 'splash', milkbottle: 'poof', pacifier: 'poof',
-            phone: 'poof', phonespin: 'poof'
+            phone: 'poof', phonespin: 'poof', phonemountain: 'poof', oldphone: 'poof'
           };
+          if (p.type === 'phonemountain') this.shatterMountain(p);
           NL.FX.cue(p.x, p.y - 6, cmap[p.type] || 'poof', Math.sign(p.vx) || 1);
           dead = true;
         }
@@ -270,12 +292,45 @@ var NL = window.NL = window.NL || {};
           }
           this.hitstop = Math.max(this.hitstop, d.damage >= 60 ? 6 : 4);
           NL.FX.shake(4);
+          if (p.type === 'phonemountain') this.shatterMountain(p);
           ps.splice(i, 1);
           break;
         }
       }
     }
   };
+
+  /* 旧手机造型（碎屏 / 亮屏笑脸两版）——旧手机山与爆机散落共用 */
+  function drawOldPhoneShape(ctx, tint, lit) {
+    ctx.fillStyle = tint;
+    ctx.strokeStyle = '#4A4038';
+    ctx.lineWidth = 2.5;
+    U.roundRectPath(ctx, -13, -22, 26, 44, 5);
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = lit ? '#FFF6D8' : '#D9D3C2';
+    U.roundRectPath(ctx, -10, -17, 20, 30, 3);
+    ctx.fill();
+    if (lit) {
+      ctx.strokeStyle = '#4A3410';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath(); ctx.moveTo(-6, -8); ctx.quadraticCurveTo(-4, -11, -2, -8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(2, -8); ctx.quadraticCurveTo(4, -11, 6, -8); ctx.stroke();
+      ctx.fillStyle = '#7A4A2B';
+      ctx.beginPath(); ctx.arc(0, -1, 4.5, 0.25, Math.PI - 0.25); ctx.closePath(); ctx.fill();
+    } else {
+      ctx.strokeStyle = '#6A6056';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(-8, -13); ctx.lineTo(-2, -5); ctx.lineTo(-7, 1); ctx.lineTo(-3, 9);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(3, -8); ctx.lineTo(8, -2); ctx.lineTo(4, 6);
+      ctx.stroke();
+    }
+    ctx.fillStyle = '#5A5046';
+    ctx.beginPath(); ctx.arc(0, 17.5, 2.2, 0, 6.3); ctx.fill();
+    ctx.fillRect(-5, -20.5, 10, 2);
+  }
 
   Battle.prototype.drawProjectiles = function (ctx) {
     var ps = this.projectiles;
@@ -457,6 +512,31 @@ var NL = window.NL = window.NL || {};
           ctx.setLineDash([6, 6]);
           ctx.beginPath(); ctx.arc(0, 0, 24 + Math.sin(p.t * 0.5) * 3, 0, 6.3); ctx.stroke();
           ctx.setLineDash([]);
+        }
+      } else if (p.type === 'oldphone') {
+        var oTint = ['#8E9AA3', '#A89584', '#97928A', '#A3A095'][Math.abs(Math.round(p.startX)) % 4];
+        ctx.rotate(p.t * 0.35);
+        ctx.scale(0.85, 0.85);
+        drawOldPhoneShape(ctx, oTint, false);
+      } else if (p.type === 'phonemountain') {
+        // 堆成山的旧手机：底宽顶窄，下落轻微摇晃；山顶一台还亮着笑脸屏
+        ctx.rotate(Math.sin(p.t * 0.1) * 0.05);
+        var MP = [
+          [-58, 38, -0.5, '#94968F', false], [56, 40, 0.55, '#A3A095', false],
+          [-44, 20, -0.16, '#8E9AA3', false], [-22, 24, 0.08, '#A89584', false],
+          [0, 26, -0.06, '#97928A', false], [22, 22, 0.14, '#8A95A0', false],
+          [44, 18, -0.1, '#A3A095', false],
+          [-28, -6, 0.1, '#9A8E9C', false], [-8, -2, -0.12, '#8E9AA3', false],
+          [14, -4, 0.06, '#AB9E8B', false], [34, -8, -0.08, '#94968F', false],
+          [-14, -30, -0.05, '#9E93A4', false], [8, -32, 0.12, '#8C97A1', false],
+          [-2, -56, 0.04, '#A79A87', true]
+        ];
+        for (var mi = 0; mi < MP.length; mi++) {
+          ctx.save();
+          ctx.translate(MP[mi][0], MP[mi][1]);
+          ctx.rotate(MP[mi][2]);
+          drawOldPhoneShape(ctx, MP[mi][3], MP[mi][4]);
+          ctx.restore();
         }
       } else if (p.type === 'heart') {
         var hp2 = 1 + Math.sin(p.t * 0.3) * 0.08;

@@ -90,7 +90,7 @@ check('共 9 种奶娃形态，全部可玩', NL.charOrder.length === 9 && NL.ch
 check('彩蛋角色「看笑了」：可玩 + 远程弹道全换手机（奶龙原招式不受影响）', !!(NL.chars.xiaole && NL.chars.xiaole.playable &&
   NL.chars.xiaole.moves.heavy.spawn.type === 'phone' &&
   NL.chars.xiaole.moves.skill2.spawn.type === 'phonespin' &&
-  NL.chars.xiaole.moves.super.spawn.type === 'phone' &&
+  NL.chars.xiaole.moves.super.spawn.type === 'phonemountain' &&
   NL.chars.nailoong.moves.heavy.spawn.type === 'milkbottle' &&
   NL.chars.nailoong.moves.skill2.spawn.type === 'pacifier' &&
   NL.chars.nailoong.moves.super.spawn.type === 'milkbottle' &&
@@ -391,7 +391,8 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
   // 每个形态的专属弹道都能生成、飞行并绘制
   const pairs = [['loving', 'heart'], ['dark', 'darkorb'], ['rage', 'flame'], ['war', 'blade'],
     ['nailoong', 'milkbottle'], ['nailoong', 'pacifier'], ['void', 'voidorb'], ['tender', 'petal'],
-    ['divine', 'goldwave'], ['sad', 'tear'], ['xiaole', 'phone'], ['xiaole', 'phonespin']];
+    ['divine', 'goldwave'], ['sad', 'tear'], ['xiaole', 'phone'], ['xiaole', 'phonespin'],
+    ['xiaole', 'phonemountain'], ['xiaole', 'oldphone']];
   let errs = [];
   for (const [cid, type] of pairs) {
     try {
@@ -402,7 +403,30 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
       for (let i = 0; i < 160; i++) { bb.update(); if (i % 20 === 0) bb.draw(actx); }
     } catch (e) { errs.push(type + ':' + e.message); }
   }
-  check('12 种专属弹道（含手机/回旋手机）生成/飞行/绘制无异常', errs.length === 0, errs.join(' | '));
+  check('14 种专属弹道（含手机/回旋手机/旧手机山/碎屏旧机）生成/飞行/绘制无异常', errs.length === 0, errs.join(' | '));
+})();
+(function () {
+  // 看笑了必杀：旧手机山从高空降临 → 命中 + 爆机散落
+  let err = null, seen = {}, y0 = null, dmg = 0;
+  try {
+    const bb = new NL.Battle({ mode: '2p', p1: 'xiaole', p2: 'nailoong' });
+    for (let i = 0; i < 120; i++) bb.update();
+    bb.p1.x = 500; bb.p2.x = 640;
+    bb.p1.energy = 100;
+    const hp0 = bb.p2.hp;
+    bb.p1.startAttack('super');
+    for (let i = 0; i < 260; i++) {
+      bb.update();
+      for (const q of bb.projectiles) {
+        if (!seen[q.type]) seen[q.type] = true;
+        if (q.type === 'phonemountain' && y0 === null) y0 = q.y;
+      }
+    }
+    dmg = hp0 - bb.p2.hp;
+  } catch (e) { err = e.message; }
+  check('看笑了必杀：旧手机山从高空生成（y0 < 0）', !err && seen.phonemountain && y0 !== null && y0 < 0, 'y0=' + (y0 !== null ? Math.round(y0) : 'null') + (err ? ' err=' + err : ''));
+  check('看笑了必杀：山砸落后爆出碎屏旧机', !err && !!seen.oldphone, Object.keys(seen).join(','));
+  check('看笑了必杀：命中对手（伤害 ≥95）', dmg >= 95, 'dmg=' + dmg);
 })();
 
 // ============ 9. 全角色 × 全招式 冒烟 ============
