@@ -677,6 +677,55 @@ try {
 }
 check('全部状态 + 全角色全招式渲染无异常', !drawErr, drawErr || '');
 
+// ============ 11.5 v0.11 设计打磨（转场 / 开场下落 / 特效护栏） ============
+console.log('\n== v0.11 设计打磨 ==');
+check('easeOutBack 缓动可用（0→0，1→1）', Math.abs(NL.util.easeOutBack(0)) < 1e-6 && Math.abs(NL.util.easeOutBack(1) - 1) < 1e-6);
+
+const bi = new NL.Battle({ mode: '2p', p1: 'loving', p2: 'dark' });
+bi.phase = 'intro'; bi.phaseT = 11;
+const off11 = bi.introOffset();
+bi.phaseT = 28;
+const off28 = bi.introOffset();
+bi.phase = 'fight';
+const offF = bi.introOffset();
+check('开场下落偏移：半空 ' + off11.toFixed(1) + 'px / 落地 ' + off28.toFixed(1) + 'px / 战斗期 ' + offF,
+  off11 > 60 && off11 < 130 && Math.abs(off28) < 1 && offF === 0);
+
+NL.FX.clear();
+const bd = new NL.Battle({ mode: '2p', p1: 'loving', p2: 'dark' });
+for (let i = 0; i < 30; i++) bd.update();
+check('开场落地帧（28F）触发尘土粒子（剩 ' + NL.FX.parts.length + ' 个）', NL.FX.parts.length > 0 && bd.phaseT >= 30);
+
+for (let i = 0; i < 700; i++) NL.FX.spawnDust(0, 0, 0);
+check('粒子数受上限保护（' + NL.FX.parts.length + ' ≤ 460）', NL.FX.parts.length <= 460);
+for (let i = 0; i < 120; i++) NL.FX.text(0, 0, 'x', {});
+check('漂浮文字受上限保护（' + NL.FX.texts.length + ' ≤ 80）', NL.FX.texts.length <= 80);
+NL.FX.clear();
+NL.FX.spawnRunDust(100, 620, -1);
+check('跑动小尘每次 +2 粒', NL.FX.parts.length === 2);
+NL.FX.clear();
+
+const TRg = NL.game;
+TRg.scenes.__ta = { enter: function () {} };
+TRg.scenes.__tb = { enter: function () {} };
+TRg.scene = TRg.scenes.__ta;
+TRg.trans.forceDefer = true;
+TRg.go('__tb');
+const tDefer = TRg.scene === TRg.scenes.__ta && TRg.trans.active && TRg.trans.phase === 0 && TRg.trans.next === '__tb';
+for (let i = 0; i < 9; i++) TRg.stepTrans();
+const tSwitch = TRg.scene === TRg.scenes.__tb && TRg.trans.phase === 1;
+for (let i = 0; i < 9; i++) TRg.stepTrans();
+const tDone = !TRg.trans.active;
+TRg.trans.forceDefer = false;
+NL.instantGo = true;
+TRg.go('__ta');
+const tInstant = TRg.scene === TRg.scenes.__ta && !TRg.trans.active;
+NL.instantGo = false;
+TRg.scene = null;
+delete TRg.scenes.__ta; delete TRg.scenes.__tb;
+check('转场生命周期：淡出等待' + (tDefer ? '✓' : '✗') + ' / 切换' + (tSwitch ? '✓' : '✗') + ' / 淡入收尾' + (tDone ? '✓' : '✗'), tDefer && tSwitch && tDone);
+check('instantGo 瞬切（测试页模式）', tInstant);
+
 // ============ 12. 主程序 ============
 console.log('\n== 主程序 ==');
 check('NL.game / NL.boot 已注册', !!sandbox.NL.game && typeof sandbox.NL.boot === 'function');

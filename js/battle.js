@@ -812,15 +812,30 @@ var NL = window.NL = window.NL || {};
     NL.SFX.play('countdown');
   };
 
+  /* v0.11：开场入场下落（120px 高度缓入，纯视觉偏移；0 = 已落地） */
+  Battle.prototype.introOffset = function () {
+    if (this.phase !== 'intro') return 0;
+    var k = U.clamp((this.phaseT - 10) / 18, 0, 1);
+    return Math.max(-8, 120 * (1 - U.easeOutBack(k)));
+  };
+
   Battle.prototype.updatePhases = function () {
     var f1 = this.p1, f2 = this.p2;
 
     if (this.phase === 'intro') {
+      if (this.phaseT === 28) {
+        // v0.11 开场演出：双人落地 → 尘土 + 轻震 + 微闪
+        NL.FX.spawnDust(f1.x, f1.y, 0);
+        NL.FX.spawnDust(f2.x, f2.y, 0);
+        NL.FX.shake(5);
+        NL.FX.flash(6, '#FFFFFF');
+      }
       if (this.phaseT === 62) this.setAnnounce('准备…', '', 60);
       if (this.phaseT === 100) {
         this.phase = 'fight';
         this.setAnnounce('干饭！', '', 50);
         NL.SFX.play('confirm');
+        NL.FX.flash(5, '#FFF7C2');
       }
       return;
     }
@@ -905,7 +920,9 @@ var NL = window.NL = window.NL || {};
     }
 
     var fs = this.fighters.slice().sort(function (a, b) { return a.y - b.y; });
+    var drop = this.introOffset();
     for (var i = 0; i < fs.length; i++) {
+      fs[i].__oy = drop;
       NL.draw.fighter(ctx, fs[i], this.time);
     }
     this.drawWinBubble(ctx);
@@ -979,6 +996,17 @@ var NL = window.NL = window.NL || {};
     ctx.lineWidth = 4;
     U.roundRectPath(ctx, x, y, w, h, 9);
     ctx.stroke();
+
+    // v0.11：残血警示（血量 <25% 红圈呼吸脉冲）
+    if (hpRatio > 0 && hpRatio < 0.25) {
+      ctx.save();
+      ctx.globalAlpha = 0.4 + 0.35 * Math.sin(this.time * 0.3);
+      ctx.strokeStyle = '#FF3B30';
+      ctx.lineWidth = 5;
+      U.roundRectPath(ctx, x - 3, y - 3, w + 6, h + 6, 11);
+      ctx.stroke();
+      ctx.restore();
+    }
 
     // 名字
     ctx.font = '900 22px "Microsoft YaHei", "PingFang SC", sans-serif';

@@ -170,6 +170,7 @@ var NL = window.NL = window.NL || {};
       var fwd = (dir === this.facing);
       this.vx = dir * (fwd ? stats.walk : stats.back);
       if (this.state !== 'walk') { this.state = 'walk'; this.stateTime = 0; }
+      if (this.stateTime % 14 === 7) NL.FX.spawnRunDust(this.x - this.facing * 26, this.y, -dir);
     } else {
       this.vx = 0;
       if (this.state !== 'idle') { this.state = 'idle'; this.stateTime = 0; }

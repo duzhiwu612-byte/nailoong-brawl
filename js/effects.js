@@ -23,7 +23,10 @@ var NL = window.NL = window.NL || {};
   FX.shake = function (mag) { FX.shakeMag = Math.max(FX.shakeMag, mag); };
   FX.flash = function (t, color) { FX.flashT = Math.max(FX.flashT, t); FX.flashColor = color || '#ffffff'; };
 
-  function add(p) { FX.parts.push(p); }
+  function add(p) {
+    if (FX.parts.length >= 460) FX.parts.splice(0, 80);   // v0.11 性能守卫：粒子上限（超出丢最旧一批）
+    FX.parts.push(p);
+  }
 
   function drawStarShape(ctx, r) {
     ctx.beginPath();
@@ -71,6 +74,18 @@ var NL = window.NL = window.NL || {};
         type: 'dust', x: x + U.rand(-16, 16), y: y - U.rand(0, 8),
         vx: U.rand(-60, 60) + (dir || 0) * 70, vy: -U.rand(20, 90), g: 150,
         life: U.randInt(18, 30), max: 30, size: U.rand(9, 18), color: 'rgba(255,255,255,0.75)'
+      });
+    }
+  };
+
+  /* v0.11：跑动小尘（每 14 帧冒两粒，让跑步"踩到地面"） */
+  FX.spawnRunDust = function (x, y, dir) {
+    for (var i = 0; i < 2; i++) {
+      add({
+        type: 'dust', x: x + U.rand(-6, 6), y: y - U.rand(0, 4),
+        vx: U.rand(-30, 30) + (dir || 0) * 20, vy: -U.rand(8, 36), g: 120,
+        life: U.randInt(10, 16), max: 16, size: U.rand(5, 9),
+        color: 'rgba(255,255,255,0.55)'
       });
     }
   };
@@ -130,6 +145,7 @@ var NL = window.NL = window.NL || {};
 
   FX.text = function (x, y, str, opt) {
     opt = opt || {};
+    if (FX.texts.length >= 80) FX.texts.splice(0, 20);    // v0.11 性能守卫：漂浮文字上限
     FX.texts.push({
       x: x, y: y, str: str, t: 0, dur: opt.dur || 46,
       color: opt.color || '#FFFFFF', size: opt.size || 26,

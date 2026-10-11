@@ -694,8 +694,9 @@ var NL = window.NL = window.NL || {};
     var groundY = NL.GROUND || 620;
     ctx.save();
 
-    // 地面影子
-    var airH = Math.max(0, groundY - f.y);
+    // 地面影子（v0.11：入场下落时按"空中高度"变淡，脚部暂离地）
+    var oy = f.__oy || 0;
+    var airH = Math.max(0, groundY - (f.y - oy));
     ctx.globalAlpha = 0.2 * (1 - Math.min(1, airH / 280));
     ctx.fillStyle = '#000000';
     var shrink = 1 - Math.min(0.45, airH / 800);
@@ -704,7 +705,7 @@ var NL = window.NL = window.NL || {};
     ctx.fill();
     ctx.globalAlpha = 1;
 
-    ctx.translate(f.x, f.y);
+    ctx.translate(f.x, f.y - oy);
     var dscale = f.drawScale || 1;
     ctx.scale(f.facing * pose.sx * sqx * dscale, pose.sy * sqy * dscale);
     if (pose.spin) {

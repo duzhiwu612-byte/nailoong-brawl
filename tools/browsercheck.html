@@ -41,6 +41,7 @@
     (function () {
       function log(s) { console.log('[BROWSERCHECK] ' + s); }
       var target = (location.hash || '#battle').replace('#', '');
+      NL.instantGo = true;   // v0.11：测试页禁用场景转场（保持瞬切，避免截图抓到黑场）
 
       function afterBoot() {
         // 等待游戏 boot 完成（场景注册）后再切换场景
@@ -398,6 +399,63 @@
           log('netjoin: inputShown=' + (NL.game.scenes.net.inp.style.display === 'block'));
         } else if (target === 'mode') {
           NL.game.go('mode');
+        } else if (target === 'intro') {
+          // v0.11 开场演出：定格在双人腾空下落瞬间（phaseT=11）
+          NL.game.pendingCfg = { mode: 'ai', difficulty: 1, p1: 'loving', p2: 'dark' };
+          NL.game.go('battle');
+          var ib = NL.game.scenes.battle.battle;
+          for (var ii = 0; ii < 11; ii++) ib.update();
+          log('intro: phase=' + ib.phase + ' phaseT=' + ib.phaseT + ' 空中偏移=' + ib.introOffset().toFixed(1) + 'px');
+          NL.game.scenes.battle.update = function () {};   // 定格
+        } else if (target === 'intro2') {
+          // v0.11 开场对照：同一时刻站立（无下落，供像素差值比对）
+          NL.game.pendingCfg = { mode: 'ai', difficulty: 1, p1: 'loving', p2: 'dark' };
+          NL.game.go('battle');
+          var i2 = NL.game.scenes.battle.battle;
+          for (var i2i = 0; i2i < 11; i2i++) i2.update();
+          i2.phase = 'fight';
+          log('intro2: 对照 phase=' + i2.phase + ' 偏移=' + i2.introOffset().toFixed(1) + 'px');
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'trans') {
+          // v0.11 转场：定格在淡出中段（黑场约 56%）
+          NL.game.go('title');
+          NL.game.trans = { active: true, phase: 0, t: 5, next: null, frozen: true, forceDefer: false, dur: 9 };
+          log('trans: 定格淡出 t=5/9 alpha≈0.56');
+        } else if (target === 'lowhp') {
+          // v0.11 残血脉冲：把 P1 压到 <25% 血
+          NL.game.pendingCfg = { mode: 'ai', difficulty: 1, p1: 'loving', p2: 'dark' };
+          NL.game.go('battle');
+          var lb = NL.game.scenes.battle.battle;
+          var lg = 0;
+          while (lg < 2400 && lb.phase !== 'fight') { lb.update(); lg++; }
+          lb.p1.hp = 90; lb.p1.hpGhost = 90;
+          lb.time = 5;   // 拨到呼吸脉冲波峰（sin(1.5)≈1），定格截图更清晰
+          log('lowhp: p1.hp=' + lb.p1.hp + '/' + lb.p1.maxHp + ' = ' + Math.round(lb.p1.hp / lb.p1.maxHp * 100) + '%');
+          NL.game.scenes.battle.update = function () {};   // 定格
+        } else if (target === 'flow') {
+          // v0.11 转场逻辑自检：真实走 淡出→切换→淡入（本场景临时关闭 instantGo）
+          (function () {
+            NL.instantGo = false;
+            var before = NL.game.scene;
+            NL.game.go('mode');
+            var d1 = (NL.game.scene === before) && NL.game.trans.active && NL.game.trans.phase === 0;
+            log('flow-1 淡出中不切场景: ' + d1);
+            for (var i = 0; i < 9; i++) NL.game.stepTrans();
+            var d2 = (NL.game.scene === NL.game.scenes.mode) && NL.game.trans.phase === 1 && NL.game.trans.active;
+            log('flow-2 淡出完成→切换→进入淡入: ' + d2);
+            NL.game.go('select');
+            var d3 = NL.game.trans.active && NL.game.trans.phase === 0 && NL.game.trans.next === 'select';
+            log('flow-3 淡入中再切换=重启整段转场: ' + d3);
+            for (var j = 0; j < 9; j++) NL.game.stepTrans();
+            for (var j2 = 0; j2 < 9; j2++) NL.game.stepTrans();
+            var d4 = !NL.game.trans.active && NL.game.scene === NL.game.scenes.select;
+            log('flow-4 转场完整结束且已到选人: ' + d4);
+            NL.instantGo = true;
+            NL.game.go('title');
+            var d5 = (NL.game.scene === NL.game.scenes.title) && !NL.game.trans.active;
+            log('flow-5 instantGo 瞬切: ' + d5);
+            log('FLOW-DONE ' + ((d1 && d2 && d3 && d4 && d5) ? '全部通过' : '有失败!'));
+          })();
         } else {
           NL.game.go('title');
         }

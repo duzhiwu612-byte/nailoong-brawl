@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>奶龙大乱斗 · BRAND SYSTEM BOARD 3×3</title>
+<style>
+  :root{
+    --ink:#131315; --panel:#191A1E; --panel2:#0C0C0E; --hair:rgba(255,249,232,.10);
+    --paper:#FFF9E8; --paper60:rgba(255,249,232,.62); --paper40:rgba(255,249,232,.40); --paper25:rgba(255,249,232,.25);
+    --gold:#F0C115; --gold-dim:#BF931C; --gold-l:#F2E061; --red:#C9000B; --ivory:#FFF9E8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:2400px;height:1800px;overflow:hidden}
+  body{background:var(--ink);color:var(--paper);
+       font-family:"Microsoft YaHei","PingFang SC","Noto Sans CJK SC",sans-serif;
+       -webkit-font-smoothing:antialiased;position:relative}
+  .mono{font-family:Consolas,"Cascadia Mono",monospace}
+  .defs{position:absolute;width:0;height:0;overflow:hidden}
+
+  .board{position:absolute;left:0;top:0;right:0;bottom:0;padding:52px 64px 0}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);
+        gap:22px;height:1640px}
+  .panel{position:relative;overflow:hidden;border-radius:10px;background:var(--panel)}
+
+  .tag{position:absolute;top:20px;left:28px;display:flex;align-items:center;gap:9px;
+       font:13px/1 Consolas,monospace;letter-spacing:.16em;color:var(--paper40)}
+  .tag i{display:inline-block;width:7px;height:7px;background:var(--gold)}
+  .fig{position:absolute;top:20px;right:28px;font:13px/1 Consolas,monospace;letter-spacing:.16em;color:var(--paper25)}
+  .htx{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.5;
+       background-image:radial-gradient(circle,rgba(0,0,85,.45) 1px,transparent 1.25px);
+       background-size:5px 5px}
+  .scan{position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;opacity:.35;
+        background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.28) 0 1px,transparent 1px 3px)}
+
+  /* ---------- 01 COVER ---------- */
+  #p1{background:#17171A;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  #p1 .mk{width:168px;height:168px;color:var(--gold)}
+  #p1 .name{margin-top:30px;font-weight:900;font-size:92px;letter-spacing:6px;line-height:1}
+  #p1 .name b{color:var(--gold)}
+  #p1 .rule{margin-top:26px;width:132px;height:3px;background:var(--gold)}
+  #p1 .en{margin-top:18px;font:20px/1 Consolas,monospace;letter-spacing:.42em;color:var(--gold);text-indent:.42em}
+  #p1 .sub{margin-top:16px;font-size:22px;letter-spacing:.30em;color:var(--paper60);text-indent:.30em}
+  #p1 .meta{margin-top:10px;font:14px/1 Consolas,monospace;letter-spacing:.22em;color:var(--paper25)}
+  #p1 .foot{position:absolute;left:28px;right:28px;bottom:20px;display:flex;justify-content:space-between;
+            font:13px/1 Consolas,monospace;letter-spacing:.14em;color:var(--paper25)}
+  #p1 .ripple{position:absolute;left:50%;top:44%;width:640px;height:640px;transform:translate(-50%,-50%);
+              border-radius:50%;border:1px solid rgba(240,193,21,.10)}
+
+  /* ---------- 02 CONSTRUCTION ---------- */
+  #p2{background:#141416;padding:64px 28px 24px}
+  #p2 .row{display:flex;gap:26px;height:100%}
+  #p2 .blueprint{flex:0 0 335px;height:335px;border:1px solid var(--hair);border-radius:8px;
+                 position:relative;background-image:
+                   linear-gradient(rgba(255,249,232,.05) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,249,232,.05) 1px,transparent 1px);
+                 background-size:33.5px 33.5px}
+  #p2 .blueprint svg{position:absolute;inset:0;width:100%;height:100%}
+  #p2 .bp-lab{position:absolute;left:12px;bottom:10px;font:11px/1.5 Consolas,monospace;color:var(--paper25);letter-spacing:.1em}
+  #p2 .legend{flex:1;display:flex;flex-direction:column;gap:0}
+  #p2 .final{display:flex;align-items:center;gap:22px}
+  #p2 .final .mk{width:118px;height:118px;color:var(--gold)}
+  #p2 .final .cap{font:12px/1.7 Consolas,monospace;color:var(--paper40);letter-spacing:.12em}
+  #p2 ul{list-style:none;margin-top:22px;border-top:1px solid var(--hair)}
+  #p2 li{display:flex;gap:14px;padding:13px 2px;border-bottom:1px solid var(--hair);align-items:baseline}
+  #p2 li b{font:13px/1 Consolas,monospace;color:var(--gold);letter-spacing:.1em;flex:0 0 58px}
+  #p2 li div{font-size:15px;color:var(--paper60);line-height:1.5}
+  #p2 li div em{font-style:normal;font-family:Consolas,monospace;color:var(--paper40);font-size:13px}
+
+  /* ---------- 03 DIGITAL ---------- */
+  #p3{background:#17171A;padding:60px 28px 22px;display:flex;flex-direction:column}
+  .browser{width:602px;border-radius:12px;overflow:hidden;background:#0F0F11;border:1px solid var(--hair);
+           box-shadow:0 30px 60px rgba(0,0,0,.45)}
+  .browser .bar{height:34px;background:#1E1E22;display:flex;align-items:center;gap:8px;padding:0 14px}
+  .browser .dot{width:9px;height:9px;border-radius:50%;background:#3A3A40}
+  .browser .dot.r{background:var(--red)} .browser .dot.y{background:var(--gold)} .browser .dot.g{background:#3A3A40}
+  .browser .url{flex:1;height:21px;border-radius:6px;background:#131316;display:flex;align-items:center;
+                padding:0 10px;font:12px/1 Consolas,monospace;color:var(--paper40);letter-spacing:.06em;gap:8px}
+  .browser .url b{color:var(--gold);font-weight:400}
+  .browser img{display:block;width:600px;height:337px;object-fit:cover;object-position:50% 30%}
+  #p3 .row{display:flex;align-items:center;gap:18px;margin-top:22px}
+  .appic{width:66px;height:66px;border-radius:15px;background:#101013;border:1px solid var(--hair);
+         display:flex;align-items:center;justify-content:center}
+  .appic svg{width:46px;height:46px;color:var(--gold)}
+  .chips{display:flex;flex-wrap:wrap;gap:9px}
+  .chip{border:1px solid var(--hair);border-radius:999px;padding:7px 15px;font-size:15px;color:var(--paper60);
+        letter-spacing:.06em;white-space:nowrap}
+  .chip.hot{border-color:rgba(240,193,21,.65);color:var(--gold)}
+  #p3 .note{margin-left:auto;text-align:right;font:12px/1.7 Consolas,monospace;color:var(--paper25);letter-spacing:.12em}
+
+  /* ---------- 04 ESSENCE ---------- */
+  #p4{background:#0C0C0E;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+  #p4 .big{font-weight:900;font-size:104px;line-height:1.28;letter-spacing:8px}
+  #p4 .big b{color:var(--gold)}
+  #p4 .dash{margin-top:30px;width:64px;height:3px;background:var(--red)}
+  #p4 .en{margin-top:22px;font:15px/1 Consolas,monospace;letter-spacing:.34em;color:var(--paper40);text-indent:.34em}
+  #p4 .wm{position:absolute;right:-60px;bottom:-130px;font-weight:900;font-size:430px;color:rgba(255,249,232,.030);line-height:1}
+
+  /* ---------- 05 COLOR ---------- */
+  #p5{background:#17171A;padding:66px 28px 24px}
+  #p5 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
+  #p5 .sw{border:1px solid var(--hair);border-radius:8px;overflow:hidden;background:#141417}
+  #p5 .blk{height:196px}
+  #p5 .txt{padding:13px 14px 15px}
+  #p5 .txt .n{font-size:17px;font-weight:700;letter-spacing:.04em}
+  #p5 .txt .h{font:13px/1 Consolas,monospace;color:var(--gold);margin-top:7px;letter-spacing:.08em}
+  #p5 .txt .u{font-size:13px;color:var(--paper40);margin-top:7px;letter-spacing:.04em}
+  #p5 .strip{margin-top:22px;height:24px;border-radius:4px;
+             background:linear-gradient(90deg,var(--gold) 0%,var(--gold-l) 32%,var(--gold-dim) 55%,var(--red) 100%)}
+  #p5 .cap{margin-top:14px;display:flex;justify-content:space-between;font:12px/1.6 Consolas,monospace;
+           color:var(--paper40);letter-spacing:.1em}
+  #p5 .sw.dark .blk{border-bottom:1px solid var(--hair)}
+
+  /* ---------- 06 TYPE ---------- */
+  #p6{background:#141416;padding:66px 28px 24px;display:flex;flex-direction:column}
+  #p6 .pair{display:flex;align-items:baseline;gap:26px}
+  #p6 .display{font-weight:900;font-size:84px;letter-spacing:4px;line-height:1}
+  #p6 .display b{color:var(--gold)}
+  #p6 .sub{font:19px/1 Consolas,monospace;letter-spacing:.34em;color:var(--gold)}
+  #p6 .cap1{margin-top:14px;font:12px/1.6 Consolas,monospace;color:var(--paper40);letter-spacing:.14em}
+  #p6 .alpha{margin-top:26px;padding:20px 0;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);
+             font:26px/1 Consolas,monospace;letter-spacing:.30em;color:var(--paper60)}
+  #p6 .alpha b{color:var(--gold);font-weight:400}
+  #p6 .row2{display:flex;justify-content:space-between;margin-top:20px;gap:20px}
+  #p6 .cell .t{font:12px/1.6 Consolas,monospace;color:var(--paper40);letter-spacing:.14em}
+  #p6 .cell .s{margin-top:8px;font-size:16px;color:var(--paper60);line-height:1.6}
+  #p6 .ko{font:30px/1 Consolas,monospace;color:var(--gold);letter-spacing:.12em}
+
+  /* ---------- 07 PHYSICAL (light) ---------- */
+  #p7{background:var(--ivory);color:#1B1B1F;padding:66px 28px 24px}
+  #p7 .tag{color:rgba(27,27,31,.55)} #p7 .fig{color:rgba(27,27,31,.35)}
+  #p7 .wrap{display:flex;height:100%;gap:30px}
+  #p7 .stack{position:relative;flex:0 0 330px}
+  #p7 .card{position:absolute;width:225px;height:312px;border-radius:16px}
+  #p7 .card.back1{left:64px;top:34px;background:#E7DFC9;transform:rotate(7deg);
+                  box-shadow:0 18px 40px rgba(27,27,31,.16)}
+  #p7 .card.back2{left:12px;top:44px;background:#D9CFB4;transform:rotate(-7deg);
+                  box-shadow:0 18px 40px rgba(27,27,31,.14)}
+  #p7 .card.front{left:42px;top:12px;background:#16171A;transform:rotate(-1.5deg);overflow:hidden;
+                  box-shadow:0 26px 50px rgba(27,27,31,.35);border:1px solid rgba(255,249,232,.12)}
+  #p7 .card.front .no{position:absolute;left:14px;top:12px;font:11px/1 Consolas,monospace;color:var(--gold);letter-spacing:.14em}
+  #p7 .card.front .art{position:absolute;left:50%;top:96px;transform:translateX(-50%);width:186px;height:186px;object-fit:contain}
+  #p7 .card.front .bar{position:absolute;left:0;right:0;bottom:0;padding:11px 14px 12px;background:rgba(255,249,232,.06);
+                       border-top:1px solid rgba(255,249,232,.10);display:flex;align-items:baseline;gap:10px}
+  #p7 .card.front .bar .cn{font-weight:900;font-size:21px;color:var(--ivory)}
+  #p7 .card.front .bar .en{font:11px/1 Consolas,monospace;color:var(--gold);letter-spacing:.12em}
+  #p7 .side{flex:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:26px}
+  #p7 .coin{width:132px;height:132px;border-radius:50%;background:var(--gold);position:relative;
+            display:flex;align-items:center;justify-content:center;box-shadow:0 14px 30px rgba(27,27,31,.25)}
+  #p7 .coin::after{content:"";position:absolute;inset:9px;border-radius:50%;border:2px dashed rgba(27,27,31,.35)}
+  #p7 .coin svg{width:74px;height:74px;color:#141416}
+  #p7 .coin-cn{margin-top:10px;font-size:15px;letter-spacing:.20em;color:rgba(27,27,31,.75)}
+  #p7 .sticker{background:var(--gold);color:#141416;border-radius:10px;padding:13px 20px;transform:rotate(-2.4deg);
+               font-weight:700;font-size:19px;letter-spacing:.08em;box-shadow:0 10px 22px rgba(27,27,31,.2)}
+  #p7 .cap{font:12px/1.7 Consolas,monospace;color:rgba(27,27,31,.55);letter-spacing:.12em}
+  #p7 .side .flexcol{display:flex;flex-direction:column;align-items:flex-start}
+
+  /* ---------- 08 IMAGE DIRECTION ---------- */
+  #p8{background:#101012}
+  #p8 .art{position:absolute;width:764px;height:764px;right:-34px;top:-44px;
+           filter:grayscale(1) contrast(1.28) brightness(.94)}
+  #p8 .tint{position:absolute;inset:0;background:var(--red);mix-blend-mode:color;opacity:.78}
+  #p8 .tint2{position:absolute;inset:0;background:linear-gradient(105deg,rgba(16,16,18,.92) 0%,rgba(16,16,18,.30) 46%,rgba(16,16,18,.06) 70%)}
+  #p8 .vig{position:absolute;inset:0;background:radial-gradient(120% 90% at 70% 30%,transparent 40%,rgba(0,0,0,.62) 100%)}
+  #p8 .punch{position:absolute;left:34px;bottom:64px}
+  #p8 .punch .cn{font-weight:900;font-size:74px;letter-spacing:6px;color:var(--paper)}
+  #p8 .punch .cn b{color:var(--gold)}
+  #p8 .punch .bar{margin-top:14px;width:96px;height:5px;background:var(--gold)}
+  #p8 .punch .en{margin-top:12px;font:13px/1 Consolas,monospace;letter-spacing:.24em;color:var(--paper60)}
+  #p8 .slash{position:absolute;left:-40px;top:104px;width:340px;height:10px;background:var(--gold);
+             transform:rotate(-18deg);opacity:.9}
+  #p8 .slash.s2{top:130px;width:220px;opacity:.5}
+
+  /* ---------- 09 SYSTEM DETAIL ---------- */
+  #p9{background:#17171A;padding:64px 28px 22px;display:flex;flex-direction:column;gap:0}
+  #p9 .r{padding:15px 0;border-bottom:1px solid var(--hair)}
+  #p9 .r .rl{font:11px/1 Consolas,monospace;color:var(--paper25);letter-spacing:.18em;margin-bottom:12px}
+  #p9 .chips{display:flex;flex-wrap:wrap;gap:8px}
+  #p9 .chip{border:1px solid var(--hair);border-radius:999px;padding:6px 13px;font-size:14px;color:var(--paper60)}
+  #p9 .chip.solid{background:var(--gold);color:#141416;border-color:var(--gold);font-weight:700}
+  #p9 .chip.red{border-color:rgba(201,0,11,.75);color:#FF6B5E}
+  #p9 .icons{display:flex;align-items:flex-end;gap:26px}
+  #p9 .ic{display:flex;flex-direction:column;align-items:center;gap:8px}
+  #p9 .tile{border-radius:14px;background:#101013;border:1px solid var(--hair);display:flex;align-items:center;justify-content:center}
+  #p9 .tile svg{color:var(--gold)}
+  #p9 .ic .cn{font:10.5px/1 Consolas,monospace;color:var(--paper25);letter-spacing:.1em}
+  #p9 .hud{display:flex;align-items:center;gap:14px}
+  #p9 .hp{width:190px;height:16px;background:rgba(255,249,232,.08);border:1px solid var(--hair);border-radius:3px;overflow:hidden}
+  #p9 .hp i{display:block;height:100%}
+  #p9 .nametag{font:12px/1 Consolas,monospace;color:var(--paper40);letter-spacing:.1em}
+  #p9 .ko{font:22px/1 Consolas,monospace;color:var(--red);letter-spacing:.08em;font-weight:700}
+  #p9 .strip{margin-top:4px;height:26px;border-radius:4px;
+             background:repeating-linear-gradient(-45deg,var(--gold) 0 10px,#141416 10px 24px);
+             opacity:.85;border:1px solid var(--hair)}
+  #p9 .cap{position:absolute;left:28px;right:28px;bottom:18px;display:flex;justify-content:space-between;
+           font:11px/1 Consolas,monospace;color:var(--paper25);letter-spacing:.14em}
+
+  /* ---------- footer / crops ---------- */
+  .footer{position:absolute;left:64px;right:64px;bottom:26px;display:flex;justify-content:space-between;
+          font:13px/1 Consolas,monospace;color:rgba(255,249,232,.34);letter-spacing:.14em}
+  .crop{position:absolute;width:20px;height:20px;color:rgba(240,193,21,.55)}
+  .crop::before,.crop::after{content:"";position:absolute;background:currentColor}
+  .crop::before{left:0;top:9px;width:20px;height:1.5px}
+  .crop::after{left:9px;top:0;width:1.5px;height:20px}
+  .c1{left:30px;top:30px}.c2{right:30px;top:30px}.c3{left:30px;bottom:30px}.c4{right:30px;bottom:30px}
+</style>
+</head>
+<body>
+
+<!-- ======== shared defs: the mark ======== -->
+<svg class="defs" aria-hidden="true">
+  <defs>
+    <mask id="eyecut">
+      <rect x="-10" y="-10" width="120" height="120" fill="#fff"/>
+      <circle cx="57" cy="42" r="8.6" fill="#000"/>
+    </mask>
+    <g id="mk">
+      <g fill="#C9000B">
+        <rect x="77" y="19" width="15" height="5.6" rx="2.8" transform="rotate(-30 84.5 21.8)"/>
+        <rect x="85" y="30" width="11" height="4.6" rx="2.3" transform="rotate(-30 90.5 32.3)"/>
+      </g>
+      <g mask="url(#eyecut)" fill="currentColor" stroke="currentColor" stroke-width="5" stroke-linejoin="round">
+        <path d="M31 21 L23 4 L41 15 Z"/>
+        <path d="M69 21 L77 4 L59 15 Z"/>
+        <circle cx="50" cy="46" r="31"/>
+        <path d="M33 62 L67 62 L50 90 Z"/>
+      </g>
+    </g>
+  </defs>
+</svg>
+
+<div class="board">
+  <div class="grid">
+
+    <!-- 01 LOGO COVER -->
+    <section class="panel" id="p1">
+      <div class="ripple"></div>
+      <div class="scan"></div><div class="htx"></div>
+      <span class="tag" style="color:rgba(255,249,232,.42)"><i></i>BRAND SYSTEM</span>
+      <span class="fig">01 / 09</span>
+      <svg class="mk" viewBox="0 0 100 100"><use href="#mk"/></svg>
+      <div class="name">奶龙<b>大乱斗</b></div>
+      <div class="rule"></div>
+      <div class="en">NAILOONG BRAWL</div>
+      <div class="sub">宇宙最强龙杯</div>
+      <div class="meta">HTML5 · 1V1 · 九形态 + 彩蛋</div>
+      <div class="foot mono"><span>FIG.01 — LOGO COVER</span><span>2026</span></div>
+    </section>
+
+    <!-- 02 LOGO CONSTRUCTION -->
+    <section class="panel" id="p2">
+      <span class="tag"><i></i>02 — LOGO CONSTRUCTION</span>
+      <span class="fig">FIG.02</span>
+      <div class="row">
+        <div class="blueprint">
+          <svg viewBox="0 0 100 100">
+            <!-- geometry -->
+            <circle cx="50" cy="46" r="31" fill="none" stroke="#F0C115" stroke-width=".5" stroke-dasharray="2 2.4" opacity=".85"/>
+            <line x1="50" y1="2" x2="50" y2="98" stroke="#F0C115" stroke-width=".4" stroke-dasharray="1.6 2.4" opacity=".5"/>
+            <line x1="2" y1="46" x2="98" y2="46" stroke="#F0C115" stroke-width=".4" stroke-dasharray="1.6 2.4" opacity=".5"/>
+            <circle cx="57" cy="42" r="8.6" fill="none" stroke="#C9000B" stroke-width=".55" stroke-dasharray="1.6 2"/>
+            <circle cx="50" cy="46" r="46" fill="none" stroke="rgba(255,249,232,.22)" stroke-width=".35"/>
+            <line x1="23" y1="4" x2="31" y2="21" stroke="#F0C115" stroke-width=".4" opacity=".65"/>
+            <line x1="77" y1="4" x2="69" y2="21" stroke="#F0C115" stroke-width=".4" opacity=".65"/>
+            <!-- faint final mark -->
+            <use href="#mk" opacity=".26"/>
+            <!-- outline mark -->
+            <g fill="none" stroke="#F0C115" stroke-width="1" stroke-linejoin="round" opacity=".95">
+              <path d="M31 21 L23 4 L41 15 Z"/>
+              <path d="M69 21 L77 4 L59 15 Z"/>
+              <circle cx="50" cy="46" r="31"/>
+              <path d="M33 62 L67 62 L50 90 Z"/>
+            </g>
+          </svg>
+          <div class="bp-lab">GRID 33.5 · MODEL R31 · CUT R8.6</div>
+        </div>
+        <div class="legend">
+          <div class="final">
+            <svg class="mk" viewBox="0 0 100 100"><use href="#mk"/></svg>
+            <div class="cap">FINAL MARK<br>奶滴龙首 · MILK-DROP HEAD</div>
+          </div>
+          <ul>
+            <li><b>① 奶滴</b><div>圆形头身 + 收尖下颏，一滴奶的轮廓 <em>R31 / TAPER</em></div></li>
+            <li><b>② 龙角</b><div>顶部双角，圆角切角，一眼可辨的奶龙 <em>2× HORN</em></div></li>
+            <li><b>③ 红瞳</b><div>负空间独眼，取自「黑气红瞳」形态 <em>Ø17 CUT</em></div></li>
+            <li><b>④ 斗气</b><div>右侧两道红色速度线，「乱斗」的动势 <em>SLASH ×2</em></div></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 03 DIGITAL APPLICATION -->
+    <section class="panel" id="p3">
+      <span class="tag"><i></i>03 — DIGITAL APPLICATION</span>
+      <span class="fig">FIG.03</span>
+      <div class="browser" style="margin-top:14px">
+        <div class="bar">
+          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+          <span class="url mono"><b>▣</b> duzhiwu612-byte.github.io/nailoong-brawl</span>
+        </div>
+        <img src="../预览截图/3_战斗画面.png" alt="battle scene">
+      </div>
+      <div class="row">
+        <div class="appic"><svg viewBox="0 0 100 100"><use href="#mk"/></svg></div>
+        <div class="chips">
+          <span class="chip hot">浏览器即开即玩</span>
+          <span class="chip">PC · 手机 · 微信</span>
+          <span class="chip">双人联机</span>
+        </div>
+        <div class="note">WEB-FIRST<br>零安装 · 零构建</div>
+      </div>
+    </section>
+
+    <!-- 04 BRAND ESSENCE -->
+    <section class="panel" id="p4">
+      <div class="wm">斗</div>
+      <div class="scan"></div><div class="htx"></div>
+      <span class="tag"><i></i>04 — BRAND ESSENCE</span>
+      <span class="fig">FIG.04</span>
+      <div class="big">一口奶，<br>一场<b>乱斗</b>。</div>
+      <div class="dash"></div>
+      <div class="en mono">THE PROMISE · 随时开打</div>
+    </section>
+
+    <!-- 05 COLOR SYSTEM -->
+    <section class="panel" id="p5">
+      <span class="tag"><i></i>05 — COLOR SYSTEM</span>
+      <span class="fig">FIG.05</span>
+      <div class="cards" style="margin-top:6px">
+        <div class="sw"><div class="blk" style="background:#F0C115"></div>
+          <div class="txt"><div class="n">奶龙金</div><div class="h mono">#F0C115</div><div class="u">主色 · 立绘直采</div></div></div>
+        <div class="sw dark"><div class="blk" style="background:#C9000B"></div>
+          <div class="txt"><div class="n">斗红</div><div class="h mono">#C9000B</div><div class="u">强调 · 红瞳 / 速度线</div></div></div>
+        <div class="sw"><div class="blk" style="background:#FFF9E8"></div>
+          <div class="txt"><div class="n">纸白</div><div class="h mono">#FFF9E8</div><div class="u">中和 · 标题页底色</div></div></div>
+        <div class="sw dark"><div class="blk" style="background:#131315;border-bottom:1px solid rgba(255,249,232,.14)"></div>
+          <div class="txt"><div class="n">墨炭</div><div class="h mono">#131315</div><div class="u">底色 · 展板画布</div></div></div>
+      </div>
+      <div class="strip"></div>
+      <div class="cap mono"><span>ACCENT RE-USE ONLY · 单一强调色撑起全系统</span><span>龙金 → 深金 → 斗红</span></div>
+    </section>
+
+    <!-- 06 TYPOGRAPHY -->
+    <section class="panel" id="p6">
+      <span class="tag"><i></i>06 — TYPOGRAPHY</span>
+      <span class="fig">FIG.06</span>
+      <div class="pair" style="margin-top:28px">
+        <div class="display">奶龙<b>大乱斗</b></div>
+        <div class="sub">NAILOONG<br>BRAWL</div>
+      </div>
+      <div class="cap1">PRIMARY — 微软雅黑 / HEAVY · 中文标题与品牌名</div>
+      <div class="alpha"><b>ABCDEFGH</b>IJKLMNOPQRSTUVWXYZ <b>0123456789</b></div>
+      <div class="row2">
+        <div class="cell"><div class="t">SECONDARY — CONSOLAS / UI &amp; DATA</div>
+          <div class="s mono">九形态 × 119 招 · K / U 双远程</div></div>
+        <div class="cell" style="text-align:right"><div class="t">BATTLE CALL</div>
+          <div class="ko">KO! ×10</div></div>
+      </div>
+    </section>
+
+    <!-- 07 PHYSICAL APPLICATION -->
+    <section class="panel" id="p7">
+      <span class="tag"><i></i>07 — PHYSICAL APPLICATION</span>
+      <span class="fig">FIG.07</span>
+      <div class="wrap" style="margin-top:8px">
+        <div class="stack">
+          <div class="card back2"></div>
+          <div class="card back1"></div>
+          <div class="card front">
+            <div class="no mono">NO.01 / 原初形</div>
+            <img class="art" src="../立绘/nailoong.png" alt="nailoong">
+            <div class="bar"><span class="cn">奶龙</span><span class="en mono">NAILOONG</span></div>
+          </div>
+        </div>
+        <div class="side">
+          <div class="flexcol">
+            <div class="coin"><svg viewBox="0 0 100 100"><use href="#mk"/></svg></div>
+            <div class="coin-cn">宇宙最强龙杯 · 纪念币</div>
+          </div>
+          <div class="sticker">一口奶，一场乱斗。</div>
+          <div class="cap">角色卡 · 徽章 · 贴纸<br>CARDS / COINS / STICKERS</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 08 IMAGE DIRECTION -->
+    <section class="panel" id="p8">
+      <img class="art" src="../立绘/rage.png" alt="rage form">
+      <div class="tint"></div>
+      <div class="tint2"></div>
+      <div class="htx" style="opacity:.55"></div>
+      <div class="scan" style="opacity:.45"></div>
+      <div class="vig"></div>
+      <span class="tag" style="color:rgba(255,249,232,.55)"><i></i>08 — IMAGE DIRECTION</span>
+      <span class="fig" style="color:rgba(255,249,232,.4)">FIG.08</span>
+      <div class="slash"></div>
+      <div class="slash s2"></div>
+      <div class="punch">
+        <div class="cn">开打<b>就是</b>现在。</div>
+        <div class="bar"></div>
+        <div class="en">HALFTONE · CRT · POSTER ENERGY</div>
+      </div>
+    </section>
+
+    <!-- 09 SYSTEM DETAIL -->
+    <section class="panel" id="p9">
+      <span class="tag"><i></i>09 — SYSTEM DETAIL</span>
+      <span class="fig">FIG.09</span>
+      <div class="r" style="margin-top:12px">
+        <div class="rl">ACTIONS / 行动按钮</div>
+        <div class="chips">
+          <span class="chip solid">开始游戏</span>
+          <span class="chip">双人联机</span>
+          <span class="chip">自选 AI 对手</span>
+          <span class="chip">K / U 双远程</span>
+          <span class="chip red">弹道对消</span>
+          <span class="chip">虚步残影</span>
+        </div>
+      </div>
+      <div class="r">
+        <div class="rl">LOGO LOCKUPS / 图标体系</div>
+        <div class="icons">
+          <div class="ic"><div class="tile" style="width:64px;height:64px"><svg viewBox="0 0 100 100" width="42" height="42"><use href="#mk"/></svg></div><span class="cn">APP ICON</span></div>
+          <div class="ic"><div class="tile" style="width:44px;height:44px"><svg viewBox="0 0 100 100" width="28" height="28"><use href="#mk"/></svg></div><span class="cn">FAVICON</span></div>
+          <div class="ic"><div class="tile" style="width:30px;height:30px"><svg viewBox="0 0 100 100" width="19" height="19"><use href="#mk"/></svg></div><span class="cn">32PX</span></div>
+          <div class="ic"><svg viewBox="0 0 100 100" width="46" height="46" style="color:rgba(240,193,21,.85)"><use href="#mk"/></svg><span class="cn" style="margin-top:14px">WATERMARK</span></div>
+        </div>
+      </div>
+      <div class="r" style="border-bottom:none">
+        <div class="rl">BATTLE HUD / 战斗组件 &amp; 纹样</div>
+        <div class="hud">
+          <span class="nametag">NAILOONG</span>
+          <span class="hp"><i style="width:78%;background:var(--gold)"></i></span>
+          <span class="ko">KO!</span>
+          <span class="hp"><i style="width:34%;background:var(--red)"></i></span>
+          <span class="nametag">RAGE</span>
+        </div>
+        <div class="strip"></div>
+      </div>
+      <div class="cap mono"><span>ONE SYSTEM · EVERY SURFACE</span><span>FIG.09 / 09</span></div>
+    </section>
+
+  </div>
+</div>
+
+<div class="crop c1"></div><div class="crop c2"></div><div class="crop c3"></div><div class="crop c4"></div>
+
+<div class="footer mono">
+  <span>奶龙大乱斗 · NAILOONG BRAWL — BRAND SYSTEM BOARD v1.0</span>
+  <span>3 × 3 · 09 PANELS · 龙金 / 斗红 / 纸白 / 墨炭</span>
+  <span>2026 · duzhiwu612-byte.github.io/nailoong-brawl</span>
+</div>
+
+</body>
+</html>

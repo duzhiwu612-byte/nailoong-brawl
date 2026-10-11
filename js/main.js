@@ -63,9 +63,44 @@ var NL = window.NL = window.NL || {};
     toast: { text: '', t: 0 }
   };
 
-  game.go = function (name) {
+  /* v0.11：场景转场（黑场淡出 → 切换 → 淡入）。测试页可置 NL.instantGo = true 恢复瞬切 */
+  game.trans = { active: false, phase: 0, t: 0, next: null, frozen: false, forceDefer: false, dur: 9 };
+
+  game._goNow = function (name) {
     game.scene = game.scenes[name];
     if (game.scene && game.scene.enter) game.scene.enter();
+    if (NL.Input && NL.Input.clearEdges) NL.Input.clearEdges();
+  };
+
+  game.go = function (name) {
+    var defer = !NL.instantGo && (!NL.__HEADLESS__ || game.trans.forceDefer) && !!game.scene;
+    if (!defer) { game._goNow(name); return; }
+    var TR = game.trans;
+    if (TR.active && TR.phase === 0) { TR.next = name; return; }   // 淡出中：排队（取最新）
+    TR.active = true; TR.phase = 0; TR.t = 0; TR.next = name;
+  };
+
+  game.stepTrans = function () {
+    var TR = game.trans;
+    if (TR.frozen) return;
+    TR.t++;
+    if (TR.phase === 0 && TR.t >= TR.dur) {
+      if (TR.next) { game._goNow(TR.next); TR.next = null; }
+      TR.phase = 1; TR.t = 0;
+    } else if (TR.phase === 1 && TR.t >= TR.dur) {
+      TR.active = false; TR.phase = 0; TR.t = 0;
+    }
+  };
+
+  game.drawTrans = function (ctx) {
+    var TR = game.trans;
+    if (!TR.active) return;
+    var a = (TR.phase === 0) ? Math.min(1, TR.t / TR.dur) : Math.max(0, 1 - TR.t / TR.dur);
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(0, 0, 1280, 720);
+    ctx.restore();
   };
 
   game.showToast = function (text) {
@@ -195,7 +230,7 @@ var NL = window.NL = window.NL || {};
       ctx.textAlign = 'center';
       ctx.font = '700 16px "Microsoft YaHei", sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.10.0 (M12) · 奶娃九形态 · 🌐 联机对战 · 🎁 看笑了 · 🗯 胜利宣言', 640, 706);
+      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.11.0 (M13) · 奶娃九形态 · 🌐 联机对战 · 🎁 看笑了 · 🗯 胜利宣言', 640, 706);
       ctx.restore();
     }
   };
@@ -1007,6 +1042,7 @@ var NL = window.NL = window.NL || {};
       this.t = 0;
       this.netWait = false;
       this.netEnding = false;
+      this.endK = 0;
       if (game.pendingCfg && game.pendingCfg.mode === 'net' && NL.Net) {
         NL.Net.battleInit(this.battle);
       }
@@ -1030,7 +1066,8 @@ var NL = window.NL = window.NL || {};
           game.go('title');
           return;
         }
-        if (b.matchOver && !this.wasOver) { this.wasOver = true; this.menuIdx = 0; }
+        if (b.matchOver && !this.wasOver) { this.wasOver = true; this.menuIdx = 0; this.endK = 0; }
+        if (b.matchOver) this.endK = Math.min(1, (this.endK || 0) + 1 / 14);
         if (b.matchOver && !NL.Net.wantRematch) {
           this.updateNetEndMenu();
           if (this.netEnding) return;
@@ -1054,8 +1091,10 @@ var NL = window.NL = window.NL || {};
       if (b.matchOver && !this.wasOver) {
         this.wasOver = true;
         this.menuIdx = 0;
+        this.endK = 0;
       }
       if (b.matchOver) {
+        this.endK = Math.min(1, (this.endK || 0) + 1 / 14);
         this.updateEndMenu();
       }
       b.update();
@@ -1116,11 +1155,12 @@ var NL = window.NL = window.NL || {};
         var b2 = this.battle;
         var cw = (b2.winnerIdx >= 0) ? b2.fighters[b2.winnerIdx] : null;
         var q = (cw && cw.char.winQuote) ? ('胜利宣言：\u300c' + cw.char.winQuote + '\u300d') : '';
+        var ek = (typeof this.endK === 'number') ? this.endK : 1;
         if (isNet) {
           this.drawOverlay(ctx, '干饭冠军诞生！', ['再战一场', '回到标题'], this.menuIdx,
-            NL.Net.wantRematch ? '等待对方同意再战…' : q);
+            NL.Net.wantRematch ? '等待对方同意再战…' : q, ek);
         } else {
-          this.drawOverlay(ctx, '干饭冠军诞生！', ['再战一场', '重选奶龙', '回到标题'], this.menuIdx, q);
+          this.drawOverlay(ctx, '干饭冠军诞生！', ['再战一场', '重选奶龙', '回到标题'], this.menuIdx, q, ek);
         }
       }
       if (isNet) {
@@ -1148,10 +1188,17 @@ var NL = window.NL = window.NL || {};
       }
     },
 
-    drawOverlay: function (ctx, title, options, idx, sub) {
+    drawOverlay: function (ctx, title, options, idx, sub, k) {
+      if (k === undefined) k = 1;
+      var k2 = 1 - (1 - k) * (1 - k);   // v0.11：浮层入场缓动（缩放入场）
       ctx.save();
       ctx.fillStyle = 'rgba(0,0,0,0.55)';
       ctx.fillRect(0, 0, 1280, 720);
+
+      ctx.globalAlpha = k2;
+      ctx.translate(640, 365);
+      ctx.scale(0.94 + 0.06 * k2, 0.94 + 0.06 * k2);
+      ctx.translate(-640, -365);
 
       ctx.fillStyle = 'rgba(60,45,25,0.95)';
       U.roundRectPath(ctx, 400, 200, 480, 330, 22);
@@ -1253,6 +1300,9 @@ var NL = window.NL = window.NL || {};
       };
     }
     game.go('title');
+    if (!NL.instantGo && !NL.__HEADLESS__) {   // v0.11：启动从黑场淡入
+      game.trans.active = true; game.trans.phase = 1; game.trans.t = 0; game.trans.next = null;
+    }
 
     var last = 0, acc = 0;
     var STEP = 1000 / 60;
@@ -1267,7 +1317,8 @@ var NL = window.NL = window.NL || {};
       while (acc >= STEP && n < 5) {
         acc -= STEP;
         n++;
-        if (game.scene && game.scene.update) game.scene.update();
+        if (game.trans.active) game.stepTrans();
+        else if (game.scene && game.scene.update) game.scene.update();
       }
       if (ctx) {
         ctx.save();
@@ -1291,6 +1342,7 @@ var NL = window.NL = window.NL || {};
         ctx.fillText(game.toast.text, 640, 640);
         ctx.restore();
       }
+      game.drawTrans(ctx);   // v0.11：转场黑场罩在所有内容之上
     }
     requestAnimationFrame(frame);
   };
