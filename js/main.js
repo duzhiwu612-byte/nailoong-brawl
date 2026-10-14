@@ -49,7 +49,24 @@ var NL = window.NL = window.NL || {};
             : ['立绘/' + hid + '_head.png', '../立绘/' + hid + '_head.png'];
           var ei = 0;
           var im = new Image();
-          im.onload = function () { rec.img = im; rec.ok = true; };
+          im.onload = function () {
+            var chd = NL.chars && NL.chars[hid];
+            if (chd && chd.headFlip && typeof document !== 'undefined' && document.createElement) {
+              // v0.12.1：该角色照片头需左右翻转，与身体朝向一致（对局 / 头像 / 小卡全部统一生效）
+              var cvs = document.createElement('canvas');
+              cvs.width = im.width;
+              cvs.height = im.height;
+              var cg = cvs.getContext('2d');
+              cg.translate(im.width, 0);
+              cg.scale(-1, 1);
+              cg.drawImage(im, 0, 0);
+              cvs.__flipped = true;
+              rec.img = cvs;
+            } else {
+              rec.img = im;
+            }
+            rec.ok = true;
+          };
           im.onerror = function () {
             ei++;
             if (ei < cands.length) { im.src = cands[ei]; }
@@ -238,7 +255,7 @@ var NL = window.NL = window.NL || {};
       ctx.textAlign = 'center';
       ctx.font = '700 16px "Microsoft YaHei", sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.12.0 (M14) · 奶娃九形态 · 🌐 联机对战 · 😎 班友参战 · 🥷 替身术', 640, 706);
+      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.12.1 (M15) · 奶娃九形态 · 🌐 联机对战 · 😎 班友参战 · 🥷 替身术', 640, 706);
       ctx.restore();
     }
   };

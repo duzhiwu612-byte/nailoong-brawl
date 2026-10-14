@@ -618,8 +618,9 @@ var NL = window.NL = window.NL || {};
       body: '#F2C838', bodyDark: '#DBA81E', belly: '#FBF08E', outline: '#D8A012',
       blush: '#FFAEC0', eye: '#2A2012', mouth: '#7A4A2B', horn: '#F8E8A8'
     },
+    headFlip: true,   // v0.12.1：照片头左右翻转，与身体朝向一致
     headScale: 1.16, bodyScale: 0.87,
-    stats: { maxHp: 1350, walk: 340, back: 305, jump: 875, jump2: 800, dash: 660, weight: 0.86 },
+    stats: { maxHp: 1150, walk: 340, back: 305, jump: 875, jump2: 800, dash: 660, weight: 0.86 },
     moves: (function () {
       var m = chain([
         mv('light1', '铁指戳', 'jabF', 4, 4, 7, { x: 24, y: -80, w: 58, h: 46 }, 25, 120, 0),
@@ -655,15 +656,15 @@ var NL = window.NL = window.NL || {};
     stats: { maxHp: 1600, walk: 305, back: 275, jump: 835, jump2: 765, dash: 590, weight: 1.05 },
     moves: (function () {
       var m = chain([
-        mv('light1', '拍肩掌', 'jabF', 5, 4, 8, { x: 34, y: -84, w: 74, h: 50 }, 27, 130, 0),
-        mv('light2', '长臂横扫', 'jabB', 5, 4, 8, { x: 34, y: -84, w: 78, h: 52 }, 29, 150, 0),
-        mv('light3', '黑板擦拍', 'stickChop', 6, 4, 10, { x: 32, y: -90, w: 80, h: 56 }, 34, 200, 0, { lunge: 110 }),
-        mv('light4', '长臂大抡', 'bigSwing', 9, 5, 15, { x: 32, y: -96, w: 96, h: 68 }, 42, 330, -270, { hitstun: 22 })
+        mv('light1', '拍肩掌', 'jabF', 5, 4, 8, { x: 44, y: -84, w: 100, h: 54 }, 27, 130, 0),
+        mv('light2', '长臂横扫', 'jabB', 5, 4, 8, { x: 44, y: -84, w: 104, h: 56 }, 29, 150, 0),
+        mv('light3', '黑板擦拍', 'stickChop', 6, 4, 10, { x: 42, y: -92, w: 108, h: 60 }, 34, 200, 0, { lunge: 140 }),
+        mv('light4', '长臂大抡', 'bigSwing', 9, 5, 15, { x: 42, y: -98, w: 126, h: 74 }, 42, 330, -270, { hitstun: 22 })
       ]);
       m.heavy = mv('heavy', '粉笔头', 'castF', 10, 4, 18, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { nohit: true, spawn: { at: 10, type: 'chalk', count: 1 } });
-      m.air = mv('air', '泰山压顶', 'airDrop', 5, 6, 12, { x: 18, y: -74, w: 74, h: 64 }, 40, 240, 0, { air: true, hitstun: 18 });
-      m.upLight = mv('upLight', '长臂上撩', 'uppercut', 7, 5, 15, { x: 20, y: -114, w: 68, h: 90 }, 60, 130, -440);
-      m.upHeavy = mv('upHeavy', '长臂扑压', 'pounceSlam', 9, 6, 17, { x: 16, y: -102, w: 86, h: 76 }, 80, 350, -370, { lunge: 300 });
+      m.air = mv('air', '泰山压顶', 'airDrop', 5, 6, 12, { x: 22, y: -74, w: 88, h: 68 }, 40, 240, 0, { air: true, hitstun: 18 });
+      m.upLight = mv('upLight', '长臂上撩', 'uppercut', 7, 5, 15, { x: 26, y: -114, w: 82, h: 92 }, 60, 130, -440);
+      m.upHeavy = mv('upHeavy', '长臂扑压', 'pounceSlam', 9, 6, 17, { x: 20, y: -102, w: 100, h: 80 }, 80, 350, -370, { lunge: 330 });
       m.guardLight = mv('guardLight', '大手一拍', 'parryCounter', 4, 4, 18, { x: 24, y: -94, w: 72, h: 62 }, 88, 340, -260, { invuln: [1, 13] });
       m.guardHeavy = mv('guardHeavy', '举高高背摔', 'throwGrab', 8, 6, 20, { x: 8, y: -104, w: 80, h: 106 }, 106, 0, -430, { unblockable: true, throwTo: true });
       m.skill1 = mv('skill1', '大步冲撞', 'jetDash', 8, 12, 16, { x: 22, y: -88, w: 72, h: 70 }, 68, 380, -160, { cost: 25, lunge: 420, big: true, vxDecay: 0.955 });
@@ -716,6 +717,7 @@ var NL = window.NL = window.NL || {};
       body: '#F2C838', bodyDark: '#DBA81E', belly: '#FBF08E', outline: '#D8A012',
       blush: '#FFAEC0', eye: '#2A2012', mouth: '#7A4A2B', horn: '#F8E8A8'
     },
+    headFlip: true,   // v0.12.1：照片头左右翻转，与身体朝向一致
     headScale: 1.16, bodyScale: 0.87,
     stats: { maxHp: 1420, walk: 330, back: 295, jump: 870, jump2: 800, dash: 645, weight: 0.9 },
     moves: (function () {

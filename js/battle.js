@@ -49,13 +49,13 @@ var NL = window.NL = window.NL || {};
     giantbanana: { r: 58, speed: 0, damage: 92, hitstun: 24, kbx: 300, kvy: -300, life: 400, g: 1500, prio: 2 },
     laser: { r: 13, speed: 1500, damage: 52, hitstun: 16, kbx: 300, kvy: -60, life: 60, g: 0, prio: 2 },
     laser3: { r: 20, speed: 1450, damage: 62, hitstun: 18, kbx: 340, kvy: -80, life: 60, g: 0, prio: 3 },
-    soundwave: { r: 16, speed: 250, damage: 40, hitstun: 15, kbx: 260, kvy: -40, life: 130, g: 0, grow: 0.55, prio: 2 },
+    soundwave: { r: 16, speed: 250, damage: 40, hitstun: 15, kbx: 260, kvy: -40, life: 130, g: 0, grow: 0.55, prio: 1 },   // v0.12.1：普通优先级 → 与其它弹道互消
     screenwave: { r: 44, speed: 330, damage: 68, hitstun: 22, kbx: 360, kvy: -200, life: 200, g: 0, grow: 3.0, prio: 3, pierce: true },
-    winebottle: { r: 15, speed: 400, damage: 44, hitstun: 15, kbx: 200, kvy: -80, life: 280, g: 880 },
-    chalk: { r: 9, speed: 980, damage: 40, hitstun: 14, kbx: 210, kvy: -50, life: 95, g: 260 },
+    winebottle: { r: 15, speed: 660, damage: 44, hitstun: 15, kbx: 200, kvy: -80, life: 62, g: 0 },   // v0.12.1：水平直飞约 680px，抵达终点炸开留水渍
+    chalk: { r: 12, speed: 1060, damage: 40, hitstun: 14, kbx: 220, kvy: -50, life: 115, g: 120 },   // v0.12.1：更平更远（天花板选手专属）
     eraser: { r: 17, speed: 470, damage: 50, hitstun: 16, kbx: 240, kvy: -90, life: 165, g: 0, returns: 300, prio: 2 },
     blackboard: { r: 70, speed: 0, damage: 96, hitstun: 26, kbx: 320, kvy: -260, life: 400, g: 1500, prio: 2 },
-    firestrip: { r: 20, speed: 0, damage: 36, hitstun: 16, kbx: 220, kvy: -60, life: 46, g: 0, pierce: true, rect: { w: 340, h: 78 }, ignite: true },
+    firestrip: { r: 20, speed: 0, damage: 36, hitstun: 16, kbx: 220, kvy: -60, life: 46, g: 0, pierce: true, rect: { w: 520, h: 78 }, ignite: true },   // v0.12.1：喷火距离 340→520
     bigfire: { r: 30, speed: 0, damage: 78, hitstun: 22, kbx: 300, kvy: -160, life: 62, g: 0, pierce: true, rect: { w: 720, h: 100 }, ignite: true, igniteAll: true, prio: 3 }
   };
 
@@ -295,8 +295,14 @@ var NL = window.NL = window.NL || {};
         p.vx = -p.vx;
       }
       if (d.returns && p.phase === 2 && Math.abs(p.x - p.startX) < 46) dead = true;
-      if (p.x < NL.WALL_L - 80 || p.x > NL.WALL_R + 80) dead = true;
-      if (p.life <= 0) dead = true;
+      if (p.x < NL.WALL_L - 80 || p.x > NL.WALL_R + 80) {
+        if (p.type === 'winebottle') this.burstBottle(p);   // v0.12.1：撞墙也炸开
+        dead = true;
+      }
+      if (p.life <= 0) {
+        if (p.type === 'winebottle') this.burstBottle(p);   // v0.12.1：抵达距离终点 → 炸开留水渍
+        dead = true;
+      }
       if (dead) { ps.splice(i, 1); continue; }
 
       for (var fI = 0; fI < this.fighters.length; fI++) {
@@ -1435,6 +1441,15 @@ var NL = window.NL = window.NL || {};
       }
       ctx.restore();
     }
+  };
+
+  /* v0.12.1：酒瓶飞抵距离终点 / 撞墙 → 炸开留水渍 */
+  Battle.prototype.burstBottle = function (p) {
+    NL.FX.shake(5);
+    NL.FX.cue(p.x, p.y, 'poof', Math.sign(p.vx) || 1);
+    NL.FX.cue(p.x - 16, p.y + 12, 'splash', -1);
+    NL.FX.cue(p.x + 16, p.y + 12, 'splash', 1);
+    this.shatterBottle(p, p.x);
   };
 
   /* 酒瓶碎裂 → 一地水渍 */

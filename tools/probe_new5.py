@@ -109,6 +109,13 @@ if a9 is not None:
     ng = cnt(a9, (1100, 90, 1270, 665), lambda r, g, b: (r > 230) & (g > 195) & (b < 110))
     chk('选中金边高亮（金色 %d px）' % ng, ng > 150)
 
+# ⑩ v0.12.1 酒瓶水平投掷 → 终点炸开：地面水渍（蓝灰）+ 水花
+a10 = load('班友_10_酒瓶炸开水渍')
+if a10 is not None:
+    blue2 = lambda r, g, b: (r > 100) & (r < 195) & (g > 125) & (g < 218) & (b > 172) & (b < 250)
+    n10 = cnt(a10, (500, 565, 740, 634), blue2)
+    chk('酒瓶终点水渍（蓝灰 %d px）' % n10, n10 > 150)
+
 print('---')
 print('new5 QC: ' + ('全部通过 OK' if fail == 0 else ('失败 %d 项 FAIL' % fail)))
 sys.exit(1 if fail else 0)

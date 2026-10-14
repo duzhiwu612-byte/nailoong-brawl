@@ -341,6 +341,7 @@ var NL = window.NL = window.NL || {};
         if (this.stateTime >= this.downT) {
           this.state = 'getup';
           this.stateTime = 0;
+          this.invuln = Math.max(this.invuln, 40);   // v0.12.1：起身全程无敌（含起身 20 帧 + 收尾余韵）
         }
         break;
       case 'getup':
@@ -675,7 +676,7 @@ var NL = window.NL = window.NL || {};
       var isBig = (sp.type === 'bigfire');
       this.battle.spawnProjectile({
         type: sp.type,
-        x: this.x + dir * (isBig ? 240 : 175) * S,
+        x: this.x + dir * (isBig ? 320 : 300) * S,   // v0.12.1：火柱整体前移（加长后仍从面前喷出）
         y: NL.GROUND - 98,
         dir: dir, vy: 0, owner: this
       });
@@ -690,7 +691,7 @@ var NL = window.NL = window.NL || {};
       else if (sp.type === 'coin') vy = -260 + off * 70;
       else if (sp.type === 'rocket') vy = off * 20;
       else if (sp.type === 'banana') vy = -390 + off * 30;                    // 抛物线
-      else if (sp.type === 'winebottle') vy = -370 + off * 30;                // 抛物线
+      else if (sp.type === 'winebottle') vy = 0;                              // v0.12.1：水平投掷（终点炸开留水渍）
       else if (sp.type === 'laser' || sp.type === 'laser3') vy = off * 30;    // 多管扇形
       else vy = off * 16;
       var sy = this.y - 100 * S + off * 8;

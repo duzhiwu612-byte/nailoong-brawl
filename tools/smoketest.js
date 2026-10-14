@@ -128,7 +128,8 @@ for (const id of NL.charOrder.concat(NL.bonusOrder)) {
 }
 check('每只角色招式齐全（' + MOVE_KEYS.length + ' 类）', dataErr.length === 0, dataErr.slice(0, 6).join(' | '));
 check('全角色招式总数 > 80（实际 ' + moveCount + '）', moveCount > 80);
-check('全员血量 ≥ 1350（更耐打）', ALL_IDS.every(id => NL.chars[id].stats.maxHp >= 1350));
+check('全员血量 ≥ 1150 且红眼杀手最脆（' + Math.min(...ALL_IDS.map(id => NL.chars[id].stats.maxHp)) + '）',
+  ALL_IDS.every(id => NL.chars[id].stats.maxHp >= 1150) && NL.chars.laser.stats.maxHp === 1150);
 check('J 轻击伤害已下调（每段 ≤ 55）', ALL_IDS.every(id => {
   for (let i = 1; i <= 5; i++) { const m = NL.chars[id].moves['light' + i]; if (m && m.damage > 55) return false; }
   return true;
@@ -773,13 +774,19 @@ check('大高个整体放大 1.30 且轻击范围加长（light1 出拳距离 > 
 (function () {
   const bb = new NL.Battle({ mode: '2p', p1: 'laobai', p2: 'nailoong' });
   for (let i = 0; i < 120; i++) bb.update();
-  bb.p1.x = 300; bb.p2.x = 1000;
-  bb.spawnProjectile({ type: 'winebottle', x: 320, y: NL.GROUND - 80, dir: 1, vy: -370, owner: bb.p1 });
-  for (let i = 0; i < 140; i++) bb.update();
+  bb.p1.x = 300; bb.p2.x = 150;   // 对手在身后，酒瓶直飞不被打断
+  bb.spawnProjectile({ type: 'winebottle', x: 348, y: NL.GROUND - 80, dir: 1, vy: 0, owner: bb.p1 });
+  let yDrift = 0, endX = 348, flew = 0;
+  for (let i = 0; i < 140; i++) {
+    bb.update();
+    const q = bb.projectiles.filter(p => p.type === 'winebottle')[0];
+    if (q) { yDrift = Math.max(yDrift, Math.abs(q.y - (NL.GROUND - 80))); endX = q.x; flew++; } else break;
+  }
+  check('酒瓶水平投掷（高度漂移 ' + yDrift.toFixed(1) + 'px，飞 ' + flew + ' 帧）', yDrift < 2 && flew >= 55 && endX - 348 > 600);
   const pud = (bb.hazards || []).filter(h => h.type === 'puddle');
-  check('酒瓶碎裂留下水渍（' + pud.length + ' 滩）', pud.length >= 1);
+  check('酒瓶抵达距离终点炸开留水渍（' + pud.length + ' 滩 @ x≈' + (pud[0] ? Math.round(pud[0].x) : '-') + '，终点 x≈' + Math.round(endX) + '）', pud.length >= 1 && Math.abs(pud[0].x - endX) < 40);
   if (pud.length) {
-    bb.p1.x = pud[0].x - 175;
+    bb.p1.x = pud[0].x - 200;
     bb.p1.facing = 1;
     bb.p1.state = 'idle'; bb.p1.move = null;
     bb.p1.energy = 50;
@@ -875,6 +882,82 @@ check('大高个整体放大 1.30 且轻击范围加长（light1 出拳距离 > 
   NL.Input.isDown = saved;
   check('联机掩码包含替身位（bit12）', (m & 4096) === 4096);
   check('掩码解码含 pSub', NL.netUtil.decodeMask(4096).pSub === true && NL.netUtil.decodeMask(0).pSub === false);
+})();
+
+// ============ 11.7 v0.12.1 修正（照片头朝向 / 起身无敌 / 距离 / 互消 / 平衡） ============
+console.log('\n== v0.12.1 修正 ==');
+check('红眼杀手血量下调（' + NL.chars.laser.stats.maxHp + '）', NL.chars.laser.stats.maxHp === 1150);
+check('红眼杀手/微醺酒仙照片头翻转标记（苦瓜不翻转）',
+  NL.chars.laser.headFlip === true && NL.chars.laobai.headFlip === true && !NL.chars.kugua.headFlip);
+check('天花板选手轻击范围再扩大（light1 x=' + NL.chars.tallguy.moves.light1.hitbox.x + ' w=' + NL.chars.tallguy.moves.light1.hitbox.w + ' / light4 w=' + NL.chars.tallguy.moves.light4.hitbox.w + '）',
+  NL.chars.tallguy.moves.light1.hitbox.x === 44 && NL.chars.tallguy.moves.light1.hitbox.w === 100 &&
+  NL.chars.tallguy.moves.light4.hitbox.w === 126 && NL.chars.tallguy.moves.light4.hitbox.x === 42);
+
+// 起身无敌：倒地 → 起身期间对手攻击无效；无敌结束后同样攻击生效
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'nailoong', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 550; bb.p2.x = 620; bb.p1.facing = 1; bb.p2.facing = -1;
+  bb.p2.state = 'downed'; bb.p2.stateTime = 0; bb.p2.downT = 40; bb.p2.onGround = true; bb.p2.invuln = 0;
+  let gd = 0;
+  while (gd < 60 && bb.p2.state !== 'getup') { bb.update(); gd++; }
+  const invAt = bb.p2.invuln, hpA = bb.p2.hp, canHit = bb.p2.canBeHit();
+  bb.p1.state = 'idle'; bb.p1.move = null; bb.p1.startAttack('light1');
+  for (let i = 0; i < 24; i++) bb.update();
+  check('起身全程无敌（getup 中 invuln=' + invAt + '，被攻击 hp 不变 ' + Math.round(hpA) + '→' + Math.round(bb.p2.hp) + '）',
+    invAt > 0 && canHit === false && bb.p2.hp === hpA && bb.p2.state !== 'hurt');
+  bb.p2.state = 'idle'; bb.p2.stateTime = 0; bb.p2.invuln = 0;
+  bb.p1.x = bb.p2.x - 70; bb.p1.facing = 1; bb.p1.state = 'idle'; bb.p1.move = null;
+  bb.p1.startAttack('light1');
+  const hpB = bb.p2.hp;
+  for (let i = 0; i < 24; i++) bb.update();
+  check('对照组：无敌结束后同一招命中（-' + Math.round(hpB - bb.p2.hp) + ' HP）', bb.p2.hp < hpB);
+})();
+
+// 音波与其它弹道互消（此前音波只吃不消）
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'jiuyi', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 300; bb.p2.x = 1200;
+  bb.spawnProjectile({ type: 'soundwave', x: 500, y: NL.GROUND - 80, dir: 1, owner: bb.p1 });
+  bb.spawnProjectile({ type: 'heart', x: 560, y: NL.GROUND - 80, dir: -1, owner: bb.p2 });
+  let both = false, swLeft = false;
+  for (let i = 0; i < 20; i++) {
+    bb.update();
+    const hasSw = bb.projectiles.some(q => q.type === 'soundwave');
+    const hasHt = bb.projectiles.some(q => q.type === 'heart');
+    if (!hasSw && !hasHt) both = true;
+    if (hasSw && !hasHt) swLeft = true;
+  }
+  check('音波 vs 普通弹道 → 双方一起消失（旧行为音波独活=' + swLeft + '）', both && !swLeft);
+})();
+
+// 喷火距离 + 粉笔头射程
+(function () {
+  const fb = new NL.Battle({ mode: '2p', p1: 'laobai', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) fb.update();
+  fb.p1.x = 300; fb.p2.x = 1300; fb.p1.facing = 1;
+  fb.p1.energy = 50; fb.p1.state = 'idle'; fb.p1.move = null;
+  fb.p1.startAttack('skill2');
+  let reach = 0;
+  for (let i = 0; i < 30; i++) {
+    fb.update();
+    const s = fb.projectiles.filter(q => q.type === 'firestrip')[0];
+    if (s) reach = (s.x + s.def.rect.w / 2) - fb.p1.x;
+  }
+  check('微醺酒仙喷火距离加长（火柱前伸 ' + Math.round(reach) + 'px）', reach > 480);
+  const cb = new NL.Battle({ mode: '2p', p1: 'tallguy', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) cb.update();
+  cb.p1.x = 300; cb.p2.x = 150;
+  cb.spawnProjectile({ type: 'chalk', x: 348, y: NL.GROUND - 80, dir: 1, vy: 0, owner: cb.p1 });
+  let chalkX = 348;
+  for (let i = 0; i < 160; i++) {
+    cb.update();
+    const c = cb.projectiles.filter(q => q.type === 'chalk')[0];
+    if (!c) break;
+    chalkX = c.x;
+  }
+  check('大高个重击·粉笔头更平更远（飞行 ' + Math.round(chalkX - 348) + 'px）', chalkX - 348 > 1000);
 })();
 
 // ============ 12. 主程序 ============

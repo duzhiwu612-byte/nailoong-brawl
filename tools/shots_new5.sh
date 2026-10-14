@@ -13,7 +13,7 @@ shoot() {
     --screenshot="$TMPDIR2/nl8_$1.png" "$PROJ_URL/browsercheck.html#$1" > "$TMPDIR2/nl8_$1.log" 2>&1
 }
 
-for scene in kugua kuguap kuguaslip laser tallguy jiuyi laobai subst newsel; do
+for scene in kugua kuguap kuguaslip laser tallguy jiuyi laobai subst newsel bottle2 flip getupinv; do
   shoot "$scene"
   echo "--- $scene ---"
   grep -a -o '"\[BROWSERCHECK\][^"]*"' "$TMPDIR2/nl8_$scene.log" | grep -v "boot\|scene ->\|DONE\|portraits" | head -4 || true
@@ -29,6 +29,9 @@ cp "$TMPDIR2/nl8_jiuyi.png"    "预览截图/班友_6_九一音波.png"
 cp "$TMPDIR2/nl8_laobai.png"   "预览截图/班友_7_火柱水渍.png"
 cp "$TMPDIR2/nl8_subst.png"    "预览截图/班友_8_替身木桩.png"
 cp "$TMPDIR2/nl8_newsel.png"   "预览截图/班友_9_选人阵容.png"
+cp "$TMPDIR2/nl8_bottle2.png"  "预览截图/班友_10_酒瓶炸开水渍.png"
+cp "$TMPDIR2/nl8_flip.png"     "预览截图/班友_11_翻转后对战.png"
+cp "$TMPDIR2/nl8_getupinv.png" "预览截图/班友_12_起身无敌.png"
 
 echo ""
 echo "=== 像素 QC ==="

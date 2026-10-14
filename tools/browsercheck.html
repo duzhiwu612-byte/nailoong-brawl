@@ -539,7 +539,7 @@
           var og1 = 0;
           while (og1 < 2400 && ob1.phase !== 'fight') { ob1.update(); og1++; }
           ob1.p1.x = 330; ob1.p2.x = 1100;
-          ob1.spawnProjectile({ type: 'winebottle', x: 360, y: NL.GROUND - 80, dir: 1, vy: -370, owner: ob1.p1 });
+          ob1.spawnProjectile({ type: 'winebottle', x: 360, y: NL.GROUND - 80, dir: 1, vy: 0, owner: ob1.p1 });
           for (var of1 = 0; of1 < 130; of1++) ob1.update();
           var pd = ob1.hazards.filter(function (h) { return h.type === 'puddle'; });
           if (pd.length) {
@@ -575,6 +575,167 @@
           ns1.cursor[0] = 12;
           ns1.update = function () {};
           log('newsel: 彩蛋阵容=' + NL.bonusOrder.length + ' cursor=' + ns1.cursor[0]);
+        } else if (target === 'getupinv') {
+          // v0.12.1 起身无敌：倒地→起身期间对手攻击无效
+          NL.game.pendingCfg = { mode: '2p', p1: 'nailoong', p2: 'rage' };
+          NL.game.go('battle');
+          var gb1 = NL.game.scenes.battle.battle;
+          var gg1 = 0;
+          while (gg1 < 2400 && gb1.phase !== 'fight') { gb1.update(); gg1++; }
+          gb1.p1.x = 550; gb1.p2.x = 620; gb1.p1.facing = 1; gb1.p2.facing = -1;
+          gb1.p2.state = 'downed'; gb1.p2.stateTime = 0; gb1.p2.downT = 40; gb1.p2.onGround = true; gb1.p2.invuln = 0;
+          var gw = 0;
+          while (gw < 60 && gb1.p2.state !== 'getup') { gb1.update(); gw++; }
+          var invG = gb1.p2.invuln, hpG = gb1.p2.hp;
+          gb1.p1.state = 'idle'; gb1.p1.move = null; gb1.p1.startAttack('light1');
+          for (var gf = 0; gf < 14; gf++) gb1.update();
+          log('getupinv: invuln=' + invG + ' canBeHit=' + gb1.p2.canBeHit() + ' p2.state=' + gb1.p2.state + ' hp变动=' + Math.round(hpG - gb1.p2.hp));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'bottle2') {
+          // v0.12.1 酒瓶水平飞行 → 终点炸开留水渍
+          NL.game.pendingCfg = { mode: '2p', p1: 'laobai', p2: 'nailoong' };
+          NL.game.go('battle');
+          var qb1 = NL.game.scenes.battle.battle;
+          var qg1 = 0;
+          while (qg1 < 2400 && qb1.phase !== 'fight') { qb1.update(); qg1++; }
+          qb1.p1.x = 300; qb1.p2.x = 150;
+          qb1.p1.startAttack('heavy');
+          var yTrk = [];
+          for (var qf = 0; qf < 76; qf++) {
+            qb1.update();
+            var bo = qb1.projectiles.filter(function (q) { return q.type === 'winebottle'; })[0];
+            if (bo) yTrk.push(Math.round(bo.y));
+          }
+          var pd2 = qb1.hazards.filter(function (h) { return h.type === 'puddle'; });
+          // 把镜头挪到炸开点附近（摄像机跟随中点，否则水渍在画面外）
+          qb1.p1.x = 900; qb1.p2.x = 1200;
+          NL.camUpdate(qb1.cam, qb1.p1, qb1.p2, true);
+          for (var qf2 = 0; qf2 < 6; qf2++) qb1.update();
+          log('bottle2: 高度轨迹=' + yTrk.join(',') + ' 水渍=' + pd2.length + ' 水渍x=' + (pd2[0] ? Math.round(pd2[0].x) : '-'));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'reach2') {
+          // v0.12.1 大高个轻击 / 粉笔头射程
+          NL.game.pendingCfg = { mode: '2p', p1: 'tallguy', p2: 'nailoong' };
+          NL.game.go('battle');
+          var rb1 = NL.game.scenes.battle.battle;
+          var rg1 = 0;
+          while (rg1 < 2400 && rb1.phase !== 'fight') { rb1.update(); rg1++; }
+          rb1.p1.x = 300; rb1.p2.x = 150;
+          rb1.spawnProjectile({ type: 'chalk', x: 348, y: NL.GROUND - 80, dir: 1, vy: 0, owner: rb1.p1 });
+          var cx2 = 348;
+          for (var rf = 0; rf < 160; rf++) {
+            rb1.update();
+            var cq = rb1.projectiles.filter(function (q) { return q.type === 'chalk'; })[0];
+            if (!cq) break;
+            cx2 = cq.x;
+          }
+          var m1 = NL.chars.tallguy.moves.light1.hitbox;
+          log('reach2: light1框 x=' + m1.x + ' w=' + m1.w + ' 粉笔飞行=' + Math.round(cx2 - 348) + 'px');
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'soundc') {
+          // v0.12.1 音波与其它弹道互消
+          NL.game.pendingCfg = { mode: '2p', p1: 'jiuyi', p2: 'nailoong' };
+          NL.game.go('battle');
+          var nb1 = NL.game.scenes.battle.battle;
+          var ng1 = 0;
+          while (ng1 < 2400 && nb1.phase !== 'fight') { nb1.update(); ng1++; }
+          nb1.p1.x = 300; nb1.p2.x = 1200;
+          nb1.spawnProjectile({ type: 'soundwave', x: 500, y: NL.GROUND - 80, dir: 1, owner: nb1.p1 });
+          nb1.spawnProjectile({ type: 'heart', x: 560, y: NL.GROUND - 80, dir: -1, owner: nb1.p2 });
+          var gone = '';
+          for (var nf1 = 0; nf1 < 20; nf1++) {
+            nb1.update();
+            var swL = nb1.projectiles.some(function (q) { return q.type === 'soundwave'; });
+            var htL = nb1.projectiles.some(function (q) { return q.type === 'heart'; });
+            if (!swL && !htL) { gone = 'both@frame' + nf1; break; }
+          }
+          log('soundc: 互消=' + (gone || '未消') + ' 剩余弹道=' + nb1.projectiles.length);
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'flip') {
+          // v0.12.1 照片头翻转（红眼杀手 / 微醺酒仙）
+          NL.game.pendingCfg = { mode: '2p', p1: 'laser', p2: 'laobai' };
+          NL.game.go('battle');
+          var fb1 = NL.game.scenes.battle.battle;
+          var fg1 = 0;
+          while (fg1 < 2400 && fb1.phase !== 'fight') { fb1.update(); fg1++; }
+          fb1.p1.x = 380; fb1.p1.facing = 1; fb1.p2.x = 900; fb1.p2.facing = -1;
+          fb1.update();
+          var lrec = NL.headImg.laser, orec = NL.headImg.laobai, krec = NL.headImg.kugua;
+          log('flip: 标记 laser=' + !!(lrec && lrec.img && lrec.img.__flipped) +
+            ' laobai=' + !!(orec && orec.img && orec.img.__flipped) +
+            ' kugua=' + !!(krec && krec.img && krec.img.__flipped) +
+            ' 载入=' + (lrec && lrec.ok ? 1 : 0) + '/' + (orec && orec.ok ? 1 : 0));
+          var im2 = null;
+          function flipPixelTest() {
+            if (!(lrec && lrec.ok && lrec.img && NL.headImg.laobai && NL.headImg.laobai.ok)) {
+              setTimeout(flipPixelTest, 300);   // 等照片头图片就绪（异步加载可能晚于本场景）
+              return;
+            }
+            try {
+              if (!im2) {
+                im2 = new Image();
+                im2.onload = function () { setTimeout(flipPixelTest, 50); };
+                im2.src = '../立绘/laser_head.png';
+                return;
+              }
+              function pxOf(imgEl) {
+                var tc = document.createElement('canvas'); tc.width = 96; tc.height = 96;
+                var gc = tc.getContext('2d'); gc.drawImage(imgEl, 0, 0, 96, 96);
+                return gc.getImageData(0, 0, 96, 96).data;
+              }
+              var dA = pxOf(im2);            // 磁盘原图
+              var dB = pxOf(lrec.img);       // 游戏内实际使用（翻转后）
+              var diffD = 0, diffM = 0, tot2 = 0;
+              for (var mi2 = 0; mi2 < 96 * 96; mi2++) {
+                var x2 = mi2 % 96, y2 = (mi2 - x2) / 96;
+                var mir = (y2 * 96 + (95 - x2)) * 4;   // 水平镜像后的索引
+                tot2++;
+                if (Math.abs(dA[mi2 * 4] - dB[mi2 * 4]) > 26) diffD++;        // vs 原图
+                if (Math.abs(dA[mir] - dB[mi2 * 4]) > 26) diffM++;            // vs 镜像原图
+              }
+              log('flip: rec.img 尺寸=' + lrec.img.width + 'x' + lrec.img.height +
+                ' 磁盘原图=' + im2.naturalWidth + 'x' + im2.naturalHeight);
+              log('flip: 与原图不符=' + diffD + ' 与「镜像原图」不符=' + diffM + ' /' + tot2 + '（若翻转生效应：镜像不符 << 原图不符）');
+              var ramp = ' .:-=+*#%@';
+              function toAscii(d) {
+                var L = [];
+                for (var ay = 0; ay < 16; ay++) {
+                  var ln = '';
+                  for (var ax = 0; ax < 32; ax++) {
+                    var pi = (Math.floor(ay * 96 / 16) * 96 + Math.floor(ax * 96 / 32)) * 4;
+                    var lum = (0.299 * d[pi] + 0.587 * d[pi + 1] + 0.114 * d[pi + 2]) / 255;
+                    ln += ramp[Math.min(9, Math.floor(lum * 10))];
+                  }
+                  L.push(ln);
+                }
+                return L;
+              }
+              var la = toAscii(dA), lb = toAscii(dB);
+              for (var ai = 0; ai < la.length; ai++) log('flipA ' + la[ai] + ' | ' + lb[ai]);
+              function canvasTest(url, rec2) {
+                var imx = new Image();
+                imx.onload = function () {
+                  try {
+                    var pA = pxOf(imx), pB = pxOf(rec2.img);
+                    var dD = 0, dM = 0, t2 = 0;
+                    for (var q = 0; q < 96 * 96; q++) {
+                      var qx = q % 96, qy = (q - qx) / 96;
+                      var qm = (qy * 96 + (95 - qx)) * 4;
+                      t2++;
+                      if (Math.abs(pA[q * 4] - pB[q * 4]) > 26) dD++;
+                      if (Math.abs(pA[qm] - pB[q * 4]) > 26) dM++;
+                    }
+                    log('flip: (' + url + ') 与原图不符=' + dD + ' 与镜像不符=' + dM + '/' + t2);
+                  } catch (e3) { log('flip: (' + url + ') 比对异常 ' + (e3 && e3.name)); }
+                };
+                imx.src = url;
+              }
+              canvasTest('../立绘/laobai_head.png', NL.headImg.laobai);
+              canvasTest('../立绘/kugua_head.png', NL.headImg.kugua);   // 对照组：不应翻转
+            } catch (e2) { log('flip: 像素比对跳过（' + (e2 && e2.name) + '）'); }
+          }
+          flipPixelTest();
+          NL.game.scenes.battle.update = function () {};
         } else {
           NL.game.go('title');
         }
@@ -598,6 +759,9 @@
           var hok = [];
           for (var hk in (NL.headImg || {})) hok.push(hk + '=' + (NL.headImg[hk].ok ? 1 : 0));
           log('headImg ' + hok.join(' '));
+          log('flipImg laser=' + !!(NL.headImg.laser && NL.headImg.laser.img && NL.headImg.laser.img.__flipped) +
+            ' laobai=' + !!(NL.headImg.laobai && NL.headImg.laobai.img && NL.headImg.laobai.img.__flipped) +
+            ' kugua=' + !!(NL.headImg.kugua && NL.headImg.kugua.img && NL.headImg.kugua.img.__flipped));
           log('DONE');
         }, 6000);
       }
