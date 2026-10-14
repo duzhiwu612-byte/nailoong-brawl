@@ -13,7 +13,7 @@ shoot() {
     --screenshot="$TMPDIR2/nl8_$1.png" "$PROJ_URL/browsercheck.html#$1" > "$TMPDIR2/nl8_$1.log" 2>&1
 }
 
-for scene in kugua kuguap kuguaslip laser tallguy jiuyi laobai subst newsel bottle2 flip getupinv; do
+for scene in kugua kuguap kuguaslip laser tallguy jiuyi laobai subst newsel bottle2 flip getupinv board2 smoke1 smokefire rain2 pile2 burn2; do
   shoot "$scene"
   echo "--- $scene ---"
   grep -a -o '"\[BROWSERCHECK\][^"]*"' "$TMPDIR2/nl8_$scene.log" | grep -v "boot\|scene ->\|DONE\|portraits" | head -4 || true
@@ -32,6 +32,12 @@ cp "$TMPDIR2/nl8_newsel.png"   "预览截图/班友_9_选人阵容.png"
 cp "$TMPDIR2/nl8_bottle2.png"  "预览截图/班友_10_酒瓶炸开水渍.png"
 cp "$TMPDIR2/nl8_flip.png"     "预览截图/班友_11_翻转后对战.png"
 cp "$TMPDIR2/nl8_getupinv.png" "预览截图/班友_12_起身无敌.png"
+cp "$TMPDIR2/nl8_board2.png"    "预览截图/班友_16_黑板之盾.png"
+cp "$TMPDIR2/nl8_smoke1.png"    "预览截图/班友_17_迷雾战场.png"
+cp "$TMPDIR2/nl8_smokefire.png" "预览截图/班友_18_烟雾大爆炸.png"
+cp "$TMPDIR2/nl8_rain2.png"     "预览截图/班友_19_全屏香蕉雨.png"
+cp "$TMPDIR2/nl8_pile2.png"     "预览截图/班友_20_手机堆挡路.png"
+cp "$TMPDIR2/nl8_burn2.png"     "预览截图/班友_21_灼烧状态.png"
 
 echo ""
 echo "=== 像素 QC ==="

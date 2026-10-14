@@ -365,35 +365,23 @@ var NL = window.NL = window.NL || {};
       var aiOpp = (NL.game.mode.type === 'ai' && sc.picking === 1);
       if (sc.picking !== 0 && !aiOpp) return;
       if (sc.netPicked) return;   // 联机已选完，等对方
-      var cw = 292, chh = 178, gap = 18, rowGap = 14;
-      var startX = (1280 - 3 * cw - 2 * gap) / 2;
+      // v0.13：15 张统一网格（5 列 × 3 行，同尺寸）——点哪张选哪张
+      var cw = 236, chh = 176, gap = 12, rowGap = 12;
+      var startX = (1280 - (5 * cw + 4 * gap)) / 2;
       var rowY = [96, 96 + chh + rowGap, 96 + (chh + rowGap) * 2];
       var col = -1, row = -1;
-      for (var ci = 0; ci < 3; ci++) {
+      for (var ci = 0; ci < 5; ci++) {
         var cx = startX + ci * (cw + gap);
         if (x >= cx && x <= cx + cw) col = ci;
       }
       for (var ri = 0; ri < 3; ri++) {
         if (y >= rowY[ri] && y <= rowY[ri] + chh) row = ri;
       }
-      if (col >= 0 && row >= 0) {
-        sc.cursor[sc.picking] = row * 3 + col;
+      var maxIdx = NL.charOrder.length + ((NL.bonusOrder ? NL.bonusOrder.length : 1) - 1);
+      if (col >= 0 && row >= 0 && row * 5 + col <= maxIdx) {
+        sc.cursor[sc.picking] = row * 5 + col;
         NL.SFX && NL.SFX.play && NL.SFX.play('select');
         keyTap('KeyJ');
-      } else if (x < 180 && y >= 90 && y <= 665) {
-        sc.cursor[sc.picking] = NL.charOrder.length;
-        NL.SFX && NL.SFX.play && NL.SFX.play('select');
-        keyTap('KeyJ');
-      } else if (x >= 1104 && x <= 1266 && y >= 96 && y <= 660 && NL.bonusOrder && NL.bonusOrder.length > 1) {
-        // v0.12：右侧班友竖排小卡（点哪张选哪张）
-        var railH2 = 104, railGap2 = 8;
-        var railY0b = 96 + (562 - (5 * railH2 + 4 * railGap2)) / 2;
-        var rbi2 = Math.floor((y - railY0b) / (railH2 + railGap2));
-        if (rbi2 >= 0 && rbi2 < NL.bonusOrder.length - 1) {
-          sc.cursor[sc.picking] = NL.charOrder.length + 1 + rbi2;
-          NL.SFX && NL.SFX.play && NL.SFX.play('select');
-          keyTap('KeyJ');
-        }
       } else if (aiOpp && x >= 1006 && x <= 1256 && y >= 658 && y <= 706) {
         // 🎲 随机对手（选对手阶段）
         sc.cursor[1] = Math.floor(Math.random() * (NL.charOrder.length + (NL.bonusOrder ? NL.bonusOrder.length : 1)));

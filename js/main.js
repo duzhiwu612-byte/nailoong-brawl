@@ -255,7 +255,7 @@ var NL = window.NL = window.NL || {};
       ctx.textAlign = 'center';
       ctx.font = '700 16px "Microsoft YaHei", sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.12.1 (M15) · 奶娃九形态 · 🌐 联机对战 · 😎 班友参战 · 🥷 替身术', 640, 706);
+      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.13.0 (M16) · 奶娃九形态 · 🌐 联机对战 · 😎 班友参战 · 🥷 替身术', 640, 706);
       ctx.restore();
     }
   };
@@ -700,34 +700,20 @@ var NL = window.NL = window.NL || {};
       }
       if (netFrozen) { left = false; right = false; up = false; down = false; confirm = false; }
 
-      /* v0.12 导航分区：0-8 九宫格 · 9 左侧看笑了大卡 · 10-14 右侧班友小卡 */
-      var XIDX = total;                                   // 9
-      var R0 = total + 1;                                 // 10
-      var RLAST = total + ((NL.bonusOrder ? NL.bonusOrder.length : 2) - 1);   // 14
+      /* v0.13 导航：15 张统一网格（5 列 × 3 行） */
+      var GC = 5, GN = total + ((NL.bonusOrder ? NL.bonusOrder.length : 1));
       if (left) {
-        var nl2;
-        if (idx === XIDX) nl2 = XIDX;
-        else if (idx >= R0) nl2 = 2 + 3 * Math.min(2, idx - R0);
-        else nl2 = (idx % 3 === 0) ? XIDX : idx - 1;
-        this.cursor[p] = nl2; NL.SFX.play('select');
+        if (idx % GC !== 0) this.cursor[p] = idx - 1;
+        NL.SFX.play('select');
       } else if (right) {
-        var nr2;
-        if (idx === XIDX) nr2 = 3;
-        else if (idx >= R0) nr2 = (idx === RLAST) ? R0 : idx + 1;
-        else nr2 = (idx % 3 === 2) ? R0 + Math.min(2, Math.floor(idx / 3)) : idx + 1;
-        this.cursor[p] = nr2; NL.SFX.play('select');
+        if (idx % GC !== GC - 1 && idx + 1 < GN) this.cursor[p] = idx + 1;
+        NL.SFX.play('select');
       } else if (up) {
-        var nu2;
-        if (idx === XIDX) nu2 = XIDX;
-        else if (idx >= R0) nu2 = (idx === R0) ? RLAST : idx - 1;
-        else nu2 = (idx < 3) ? idx + 6 : idx - 3;
-        this.cursor[p] = nu2; NL.SFX.play('select');
+        if (idx >= GC) this.cursor[p] = idx - GC;
+        NL.SFX.play('select');
       } else if (down) {
-        var nd2;
-        if (idx === XIDX) nd2 = R0;
-        else if (idx >= R0) nd2 = (idx === RLAST) ? R0 : idx + 1;
-        else nd2 = (idx >= 6) ? idx - 6 : idx + 3;
-        this.cursor[p] = nd2; NL.SFX.play('select');
+        if (idx + GC < GN) this.cursor[p] = idx + GC;
+        NL.SFX.play('select');
       }
 
       if (NL.Input.consumePressed('Escape')) {
@@ -828,15 +814,15 @@ var NL = window.NL = window.NL || {};
       ctx.fillText(header, 640, 60);
       ctx.restore();
 
-      var order = NL.charOrder;
-      var cw = 292, chh = 178, gap = 18, rowGap = 14;
-      var totalW = 3 * cw + 2 * gap;
-      var startX = (1280 - totalW) / 2;
+      /* v0.13：全部 15 名角色统一选将框（5 列 × 3 行，同尺寸 236×176） */
+      var order = NL.charOrder.concat(NL.bonusOrder || []);
+      var cw = 236, chh = 176, gap = 12, rowGap = 12;
+      var startX = (1280 - (5 * cw + 4 * gap)) / 2;
       var rowY = [96, 96 + chh + rowGap, 96 + (chh + rowGap) * 2];
 
       for (var i = 0; i < order.length; i++) {
         var ch = NL.chars[order[i]];
-        var col = i % 3, row = Math.floor(i / 3);
+        var col = i % 5, row = Math.floor(i / 5);
         var x = startX + col * (cw + gap);
         var y = rowY[row];
         var isShake = (this.shakeT > 0 && this.cursor[this.picking] === i && (Math.floor(this.shakeT / 3) % 2 === 1));
@@ -864,7 +850,7 @@ var NL = window.NL = window.NL || {};
           ctx.fillStyle = vg;
           ctx.fillRect(x + 3, y + chh - 100, cw - 6, 97);
         } else {
-          NL.draw.fighter(ctx, makePreview(ch, x + cw / 2, y + chh - 66, 0.66, i * 13 + 3, 'idle'), t + i * 23);
+          NL.draw.fighter(ctx, makePreview(ch, x + cw / 2, y + chh - 52, 0.54, i * 13 + 3, 'idle'), t + i * 23);
         }
         ctx.restore();
 
@@ -873,19 +859,24 @@ var NL = window.NL = window.NL || {};
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         if (hasArt) {
-          ctx.font = '900 26px "Microsoft YaHei", sans-serif';
+          ctx.font = '900 23px "Microsoft YaHei", sans-serif';
           ctx.fillStyle = '#5A4318';
-          ctx.fillText(ch.name, x + cw / 2, y + chh - 52);
-          ctx.font = '700 14px "Microsoft YaHei", sans-serif';
+          ctx.fillText(ch.name, x + cw / 2, y + chh - 44);
+          ctx.font = '700 13px "Microsoft YaHei", sans-serif';
           ctx.fillStyle = '#8A6A30';
-          ctx.fillText(ch.title, x + cw / 2, y + chh - 24);
+          ctx.fillText(ch.title, x + cw / 2, y + chh - 20);
         } else {
-          ctx.font = '900 25px "Microsoft YaHei", sans-serif';
+          ctx.font = '900 22px "Microsoft YaHei", sans-serif';
           ctx.fillStyle = '#5A4318';
-          ctx.fillText(ch.name, x + cw / 2, y + 32);
-          ctx.font = '700 14px "Microsoft YaHei", sans-serif';
+          ctx.fillText(ch.name, x + cw / 2, y + 28);
+          ctx.font = '700 13px "Microsoft YaHei", sans-serif';
           ctx.fillStyle = '#8A6A30';
-          ctx.fillText(ch.title, x + cw / 2, y + 58);
+          ctx.fillText(ch.title, x + cw / 2, y + 50);
+        }
+        if (i >= NL.charOrder.length) {   // v0.13：阵营小标签
+          ctx.font = '900 13px "Microsoft YaHei", sans-serif';
+          ctx.fillStyle = '#FF6B9D';
+          ctx.fillText(order[i] === NL.bonusId ? '🎁 彩蛋' : '😎 同学', x + cw / 2, y + chh - (hasArt ? 66 : 72));
         }
         ctx.restore();
 
@@ -910,14 +901,14 @@ var NL = window.NL = window.NL || {};
           ctx.lineWidth = 7;
           U.roundRectPath(ctx, x + 1, y + 1, cw - 2, chh - 2, 16);
           ctx.stroke();
-          ctx.font = '900 20px "Microsoft YaHei", sans-serif';
+          ctx.font = '900 16px "Microsoft YaHei", sans-serif';
           ctx.textAlign = 'left';
           ctx.textBaseline = 'middle';
           ctx.fillStyle = '#FF6B9D';
           ctx.strokeStyle = '#5A4318';
-          ctx.lineWidth = 5;
-          ctx.strokeText('▼ 选择中', x + 12, y + 22);
-          ctx.fillText('▼ 选择中', x + 12, y + 22);
+          ctx.lineWidth = 4;
+          ctx.strokeText('▼ 选择中', x + 9, y + 18);
+          ctx.fillText('▼ 选择中', x + 9, y + 18);
           ctx.restore();
         } else {
           ctx.save();
@@ -944,157 +935,7 @@ var NL = window.NL = window.NL || {};
         }
       }
 
-      /* ===== 彩蛋阵容：左侧大卡「看笑了」+ 右侧 5 位班友竖排小卡（v0.12） ===== */
-      var bOrder = NL.bonusOrder || [NL.bonusId];
-      var xid = bOrder[0];
-      var xch = NL.chars[xid];
-      var bsel = (this.cursor[this.picking] === order.length);
-      var bx = 14, by = 96, bwid = 156, bhei = 562;
-      ctx.save();
-      ctx.fillStyle = 'rgba(255,250,235,0.95)';
-      U.roundRectPath(ctx, bx, by, bwid, bhei, 16);
-      ctx.fill();
-      ctx.restore();
-      var bp = NL.portraits && NL.portraits[xid];
-      if (bp && bp.ok) {
-        ctx.save();
-        U.roundRectPath(ctx, bx + 3, by + 3, bwid - 6, bhei - 6, 14);
-        ctx.clip();
-        drawCover(ctx, bp.img, bx + 3, by + 3, bwid - 6, bhei - 6);
-        ctx.fillStyle = 'rgba(255,250,235,0.94)';
-        ctx.fillRect(bx + 3, by + bhei - 96, bwid - 6, 90);
-        ctx.restore();
-      } else {
-        NL.draw.fighter(ctx, makePreview(xch, bx + bwid / 2, by + bhei - 110, 0.6, 77, 'idle'), t);
-      }
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.lineJoin = 'round';
-      ctx.font = '900 24px "Microsoft YaHei", sans-serif';
-      ctx.strokeStyle = '#5A4318';
-      ctx.lineWidth = 6;
-      ctx.strokeText(xch.name, bx + bwid / 2, by + bhei - 66);
-      ctx.fillStyle = '#5A4318';
-      ctx.fillText(xch.name, bx + bwid / 2, by + bhei - 66);
-      ctx.font = '700 13px "Microsoft YaHei", sans-serif';
-      ctx.fillStyle = '#8A6A30';
-      ctx.fillText('彩蛋 · 像素限定', bx + bwid / 2, by + bhei - 40);
-      ctx.font = '900 15px "Microsoft YaHei", sans-serif';
-      ctx.fillStyle = '#FF6B9D';
-      ctx.fillText('🎁 彩蛋', bx + bwid / 2, by + 20);
-      ctx.restore();
-      if (bsel) {
-        ctx.save();
-        ctx.strokeStyle = '#FFD93B';
-        ctx.lineWidth = 7;
-        U.roundRectPath(ctx, bx + 1, by + 1, bwid - 2, bhei - 2, 16);
-        ctx.stroke();
-        ctx.font = '900 20px "Microsoft YaHei", sans-serif';
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#FF6B9D';
-        ctx.strokeStyle = '#5A4318';
-        ctx.lineWidth = 5;
-        ctx.strokeText('▼ 选择中', bx + 10, by + 48);
-        ctx.fillText('▼ 选择中', bx + 10, by + 48);
-        ctx.restore();
-      } else {
-        ctx.save();
-        ctx.strokeStyle = '#5A4318';
-        ctx.lineWidth = 4;
-        U.roundRectPath(ctx, bx, by, bwid, bhei, 16);
-        ctx.stroke();
-        ctx.restore();
-      }
-      if (this.picking === 1 && this.picks[0] === xid) {
-        ctx.save();
-        ctx.font = '900 18px "Microsoft YaHei", sans-serif';
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        ctx.lineJoin = 'round';
-        ctx.strokeStyle = '#5A4318';
-        ctx.lineWidth = 5;
-        ctx.strokeText('已选 ✓', bx + bwid - 10, by + 78);
-        ctx.fillStyle = '#68CB6E';
-        ctx.fillText('已选 ✓', bx + bwid - 10, by + 78);
-        ctx.restore();
-      }
-
-      /* ===== v0.12：右侧竖排 5 位班友小卡 ===== */
-      var railX = 1104, railW = 162, railH = 104, railGap = 8;
-      var railY0 = 96 + (562 - (5 * railH + 4 * railGap)) / 2;
-      for (var rbi = 1; rbi < bOrder.length; rbi++) {
-        var rid2 = bOrder[rbi];
-        var rch = NL.chars[rid2];
-        var ry2 = railY0 + (rbi - 1) * (railH + railGap);
-        var rsel = (this.cursor[this.picking] === order.length + rbi);
-        ctx.save();
-        ctx.fillStyle = rch.playable ? 'rgba(255,250,235,0.95)' : 'rgba(205,205,205,0.9)';
-        U.roundRectPath(ctx, railX, ry2, railW, railH, 14);
-        ctx.fill();
-        ctx.restore();
-        ctx.save();
-        U.roundRectPath(ctx, railX + 2, ry2 + 2, railW - 4, railH - 4, 12);
-        ctx.clip();
-        NL.draw.fighter(ctx, makePreview(rch, railX + railW * 0.30, ry2 + railH - 24, 0.42, rbi * 19 + 5, 'idle'), t + rbi * 37);
-        ctx.restore();
-        // 名字 + 称号 + 同学标签
-        ctx.save();
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        ctx.lineJoin = 'round';
-        ctx.font = '900 12px "Microsoft YaHei", sans-serif';
-        ctx.fillStyle = '#FF6B9D';
-        ctx.fillText('😎 同学', railX + 76, ry2 + 17);
-        ctx.font = '900 20px "Microsoft YaHei", sans-serif';
-        ctx.strokeStyle = '#5A4318';
-        ctx.lineWidth = 5;
-        ctx.strokeText(rch.name, railX + 76, ry2 + 42);
-        ctx.fillStyle = '#5A4318';
-        ctx.fillText(rch.name, railX + 76, ry2 + 42);
-        ctx.font = '700 12px "Microsoft YaHei", sans-serif';
-        ctx.fillStyle = '#8A6A30';
-        ctx.fillText(rch.title || '', railX + 76, ry2 + 66);
-        ctx.restore();
-        if (rsel) {
-          ctx.save();
-          ctx.strokeStyle = '#FFD93B';
-          ctx.lineWidth = 6;
-          U.roundRectPath(ctx, railX + 1, ry2 + 1, railW - 2, railH - 2, 14);
-          ctx.stroke();
-          ctx.font = '900 15px "Microsoft YaHei", sans-serif';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'middle';
-          ctx.fillStyle = '#FF6B9D';
-          ctx.strokeStyle = '#5A4318';
-          ctx.lineWidth = 4;
-          ctx.strokeText('▼ 选择中', railX + railW - 8, ry2 + railH - 15);
-          ctx.fillText('▼ 选择中', railX + railW - 8, ry2 + railH - 15);
-          ctx.restore();
-        } else {
-          ctx.save();
-          ctx.strokeStyle = '#5A4318';
-          ctx.lineWidth = 3.5;
-          U.roundRectPath(ctx, railX, ry2, railW, railH, 14);
-          ctx.stroke();
-          ctx.restore();
-        }
-        if (this.picking === 1 && this.picks[0] === rid2) {
-          ctx.save();
-          ctx.font = '900 14px "Microsoft YaHei", sans-serif';
-          ctx.textAlign = 'right';
-          ctx.textBaseline = 'middle';
-          ctx.lineJoin = 'round';
-          ctx.strokeStyle = '#5A4318';
-          ctx.lineWidth = 4;
-          ctx.strokeText('已选 ✓', railX + railW - 8, ry2 + 17);
-          ctx.fillStyle = '#68CB6E';
-          ctx.fillText('已选 ✓', railX + railW - 8, ry2 + 17);
-          ctx.restore();
-        }
-      }
-
+      /* v0.13：班友/彩蛋已并入统一网格（5×3），旧分区绘制已移除 */
       // 提示
       ctx.save();
       ctx.textAlign = 'center';
@@ -1123,7 +964,7 @@ var NL = window.NL = window.NL || {};
           } else if (this.picking === 1) {
             tip = 'WASD 选对手 · J 确认出战 · K 掷🎲 随机 · Esc 重选自己';
           } else {
-            tip = 'WASD 选择 · J/Enter 确认 · 全场 9 种形态均可出战　｜　组合技：S+J 防反 · S+K 投技 · W+J 上挑 · W+K 跃击';
+            tip = 'WASD 选择 · J/Enter 确认 · 全场 15 名角色均可出战　｜　组合技：S+J 防反 · S+K 投技 · W+J 上挑 · W+K 跃击';
           }
         }
         ctx.fillText(tip, 640, 674);

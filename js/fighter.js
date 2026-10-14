@@ -52,6 +52,7 @@ var NL = window.NL = window.NL || {};
     this.hurtT = 0;
     this.downT = 0;
     this.bounceCount = 0;
+    this.burnT = 0;   // v0.13：灼烧状态剩余帧
     this.invuln = 0;
     this.flash = 0;
     this.blockT = 0;
@@ -276,6 +277,15 @@ var NL = window.NL = window.NL || {};
     if (this.flash > 0) this.flash--;
     if (this.subCd > 0) this.subCd--;
     if (this.invuln > 0) this.invuln--;
+    if (this.burnT > 0) {   // v0.13：灼烧状态（持续掉血）
+      this.burnT--;
+      if (this.burnT % 20 === 0 && this.hp > 0 && this.state !== 'ko') {
+        this.hp = Math.max(0, this.hp - 9);
+        this.flash = Math.max(this.flash || 0, 3);
+        NL.FX.cue(this.x + Math.sin(this.burnT * 1.7) * 16, this.y - 46 - (this.burnT % 60), 'flame', (this.burnT % 2) ? 1 : -1);
+        if (this.hp <= 0) this.die();
+      }
+    }
     if (this.hitCd > 0) this.hitCd--;
     if (this.blockT > 0) this.blockT--;
     if (this.dashCd > 0) this.dashCd--;
@@ -616,6 +626,7 @@ var NL = window.NL = window.NL || {};
     this.move = null;
     this.moveFrame = 0;
     this.hitCd = 0;
+    this.burnT = 0;   // v0.13：灼烧状态剩余帧
     this.invuln = 0;
     this.flash = 0;
     this.blockT = 0;
@@ -669,6 +680,51 @@ var NL = window.NL = window.NL || {};
       NL.FX.shake(10);
       NL.SFX.play('superFlash');
       NL.FX.cue(this.x, this.y - 110 * S, 'note', 1);
+      return;
+    }
+    // v0.13：大高个必杀·黑板之盾（跟随持有者的黑板壁垒）
+    if (sp.type === 'boardshield') {
+      this.battle.spawnProjectile({
+        type: 'boardshield',
+        x: this.x + dir * 76 * S,
+        y: this.y - 92,
+        dir: dir, vy: 0, owner: this
+      });
+      NL.SFX.play('block');
+      NL.FX.cue(this.x + dir * 60 * S, this.y - 120 * S, 'poof', dir);
+      NL.FX.text(this.x, this.y - 190 * S, '黑板之盾！', { size: 30, color: '#BFE9FF', dur: 56 });
+      return;
+    }
+    // v0.13：老白必杀·大范围烟雾（宽超全屏 · 遇火爆炸）
+    if (sp.type === 'smoke') {
+      this.battle.spawnProjectile({
+        type: 'smoke',
+        x: this.x + dir * 140,
+        y: NL.GROUND - 196,
+        dir: dir, vy: 0, owner: this
+      });
+      NL.SFX.play('flame');
+      NL.FX.flash(5, '#D8D2C8');
+      NL.FX.cue(this.x + dir * 90 * S, this.y - 120 * S, 'poof', dir);
+      NL.FX.text(this.x, this.y - 200 * S, '烟雾弥漫…', { size: 30, color: '#CFCFCF', dur: 60 });
+      return;
+    }
+    // v0.13：苦瓜必杀·全屏香蕉雨（14 根从天而降）
+    if (sp.type === 'rainbanana') {
+      for (var rb = 0; rb < 14; rb++) {
+        var bx2 = this.x - 720 + rb * (1440 / 13);
+        this.battle.spawnProjectile({
+          type: 'rainbanana',
+          x: U.clamp(bx2, NL.WALL_L + 40, NL.WALL_R - 40),
+          y: NL.GROUND - 880 - (rb % 3) * 60,
+          dir: (rb % 2 === 0) ? 1 : -1,
+          vy: 40 + (rb % 3) * 90,
+          owner: this
+        });
+      }
+      NL.SFX.play('superFlash');
+      NL.FX.shake(8);
+      NL.FX.text(this.x, this.y - 200 * S, '香蕉雨！', { size: 32, color: '#FFE066', dur: 64 });
       return;
     }
     // v0.12：老白喷火 —— 面前形成横向火柱（大招更宽更远）

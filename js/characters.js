@@ -603,7 +603,7 @@ var NL = window.NL = window.NL || {};
       m.guardHeavy = mv('guardHeavy', '香蕉背摔', 'throwGrab', 8, 6, 20, { x: 8, y: -100, w: 78, h: 102 }, 102, 0, -420, { unblockable: true, throwTo: true });
       m.skill1 = mv('skill1', '蕉皮突进', 'jetDash', 8, 12, 16, { x: 20, y: -84, w: 68, h: 66 }, 66, 360, -150, { cost: 25, lunge: 400, big: true, vxDecay: 0.96 });
       m.skill2 = mv('skill2', '滚地苦瓜', 'castF', 12, 4, 22, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 25, nohit: true, spawn: { at: 12, type: 'rollmelon', count: 1 } });
-      m.super = mv('super', '巨型香蕉压顶', 'castF', 20, 4, 26, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 20, type: 'giantbanana', count: 1 } });
+      m.super = mv('super', '全屏香蕉雨', 'castF', 20, 6, 30, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 20, type: 'rainbanana', count: 1 } });
       return m;
     })()
   };
@@ -652,6 +652,7 @@ var NL = window.NL = window.NL || {};
       body: '#F2C838', bodyDark: '#DBA81E', belly: '#FBF08E', outline: '#D8A012',
       blush: '#FFAEC0', eye: '#2A2012', mouth: '#7A4A2B', horn: '#F8E8A8'
     },
+    slimX: 0.8,   // v0.13：身形变瘦（宽向压缩 0.8，仍保持全场最高）
     headScale: 0.98, bodyScale: 1.0,
     stats: { maxHp: 1600, walk: 305, back: 275, jump: 835, jump2: 765, dash: 590, weight: 1.05 },
     moves: (function () {
@@ -668,8 +669,8 @@ var NL = window.NL = window.NL || {};
       m.guardLight = mv('guardLight', '大手一拍', 'parryCounter', 4, 4, 18, { x: 24, y: -94, w: 72, h: 62 }, 88, 340, -260, { invuln: [1, 13] });
       m.guardHeavy = mv('guardHeavy', '举高高背摔', 'throwGrab', 8, 6, 20, { x: 8, y: -104, w: 80, h: 106 }, 106, 0, -430, { unblockable: true, throwTo: true });
       m.skill1 = mv('skill1', '大步冲撞', 'jetDash', 8, 12, 16, { x: 22, y: -88, w: 72, h: 70 }, 68, 380, -160, { cost: 25, lunge: 420, big: true, vxDecay: 0.955 });
-      m.skill2 = mv('skill2', '回旋黑板擦', 'castF', 11, 4, 22, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 25, nohit: true, spawn: { at: 11, type: 'eraser', count: 1 } });
-      m.super = mv('super', '黑板压顶', 'castF', 20, 4, 26, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 20, type: 'blackboard', count: 1 } });
+      m.skill2 = mv('skill2', '三根粉笔', 'castF', 11, 4, 22, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 25, nohit: true, spawn: { at: 11, type: 'chalk', count: 3 } });
+      m.super = mv('super', '黑板之盾', 'castF', 20, 4, 26, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 20, type: 'boardshield', count: 1 } });
       return m;
     })()
   };
@@ -735,7 +736,7 @@ var NL = window.NL = window.NL || {};
       m.guardHeavy = mv('guardHeavy', '醉摔', 'throwGrab', 8, 6, 20, { x: 8, y: -100, w: 78, h: 102 }, 104, 0, -425, { unblockable: true, throwTo: true });
       m.skill1 = mv('skill1', '酒劲冲锋', 'jetDash', 8, 12, 16, { x: 20, y: -86, w: 68, h: 68 }, 66, 370, -160, { cost: 25, lunge: 410, big: true, vxDecay: 0.96 });
       m.skill2 = mv('skill2', '喷火', 'castF', 12, 4, 24, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 25, nohit: true, spawn: { at: 12, type: 'firestrip', count: 1 } });
-      m.super = mv('super', '烈焰咆哮', 'castF', 20, 8, 28, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 20, type: 'bigfire', count: 1 } });
+      m.super = mv('super', '迷雾战场', 'castF', 20, 6, 28, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 20, type: 'smoke', count: 1 } });
       return m;
     })()
   };

@@ -394,10 +394,11 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
     ['nailoong', 'milkbottle'], ['nailoong', 'pacifier'], ['void', 'voidorb'], ['tender', 'petal'],
     ['divine', 'goldwave'], ['sad', 'tear'], ['xiaole', 'phone'], ['xiaole', 'phonespin'],
     ['xiaole', 'phonemountain'], ['xiaole', 'oldphone'],
-    ['kugua', 'banana'], ['kugua', 'rollmelon'], ['kugua', 'giantbanana'],
+    ['kugua', 'banana'], ['kugua', 'rollmelon'], ['kugua', 'giantbanana'], ['kugua', 'rainbanana'],
     ['laser', 'laser'], ['laser', 'laser3'], ['jiuyi', 'soundwave'], ['jiuyi', 'screenwave'],
-    ['tallguy', 'chalk'], ['tallguy', 'eraser'], ['tallguy', 'blackboard'],
-    ['laobai', 'winebottle'], ['laobai', 'firestrip'], ['laobai', 'bigfire']];
+    ['tallguy', 'chalk'], ['tallguy', 'eraser'], ['tallguy', 'blackboard'], ['tallguy', 'boardshield'],
+    ['laobai', 'winebottle'], ['laobai', 'firestrip'], ['laobai', 'bigfire'], ['laobai', 'smoke'],
+    ['xiaole', 'phonepile']];
   let errs = [];
   for (const [cid, type] of pairs) {
     try {
@@ -408,7 +409,7 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
       for (let i = 0; i < 160; i++) { bb.update(); if (i % 20 === 0) bb.draw(actx); }
     } catch (e) { errs.push(type + ':' + e.message); }
   }
-  check('27 种专属弹道（含手机全家 + 香蕉/苦瓜/镭射/音波/粉笔/黑板擦/酒瓶/火柱）生成/飞行/绘制无异常', errs.length === 0, errs.join(' | '));
+  check(pairs.length + ' 种专属弹道（含手机全家 + 香蕉/苦瓜/镭射/音波/粉笔/酒瓶/火柱/黑板之盾/烟雾/手机堆）生成/飞行/绘制无异常', errs.length === 0, errs.join(' | '));
 })();
 (function () {
   // 看笑了必杀：旧手机山从高空降临 → 命中 + 爆机散落
@@ -754,8 +755,8 @@ check('大高个整体放大 1.30 且轻击范围加长（light1 出拳距离 > 
   bb.p2.x = bb.hazards[0].x;
   bb.p2.onGround = true;
   for (let i = 0; i < 8; i++) bb.update();
-  check('踩到香蕉皮 → 滑倒（掉血 ' + (hp0 - bb.p2.hp) + '，状态=' + bb.p2.state + '）',
-    bb.p2.hp < hp0 && (bb.p2.state === 'hurtAir' || bb.p2.state === 'hurt' || bb.p2.state === 'downed'));
+  check('踩到香蕉皮 → 滑倒受伤（掉血 ' + Math.round(hp0 - bb.p2.hp) + '，状态=' + bb.p2.state + '）',
+    bb.p2.hp <= hp0 - 25 && (bb.p2.state === 'hurtAir' || bb.p2.state === 'hurt' || bb.p2.state === 'downed'));
 })();
 
 // 滚地苦瓜：贴地滚动
@@ -958,6 +959,169 @@ check('天花板选手轻击范围再扩大（light1 x=' + NL.chars.tallguy.move
     chalkX = c.x;
   }
   check('大高个重击·粉笔头更平更远（飞行 ' + Math.round(chalkX - 348) + 'px）', chalkX - 348 > 1000);
+})();
+
+// ============ 11.8 v0.13 大改版（瘦身 / 黑板之盾 / 烟雾 / 香蕉雨 / 手机堆 / 灼烧 / 选将统一） ============
+console.log('\n== v0.13 大改版 ==');
+check('天花板选手身形变瘦（slimX=0.8，仍全场最高 scaleMul=1.3）',
+  NL.chars.tallguy.slimX === 0.8 && NL.chars.tallguy.scaleMul === 1.3);
+check('天花板选手远攻改粉笔（K 粉笔头 · U 三根粉笔）',
+  NL.chars.tallguy.moves.heavy.spawn.type === 'chalk' && NL.chars.tallguy.moves.skill2.spawn.type === 'chalk' &&
+  NL.chars.tallguy.moves.skill2.spawn.count === 3);
+check('天花板选手必杀改「黑板之盾」', NL.chars.tallguy.moves.super.spawn.type === 'boardshield' && NL.chars.tallguy.moves.super.label === '黑板之盾');
+check('苦瓜必杀改「全屏香蕉雨」', NL.chars.kugua.moves.super.spawn.type === 'rainbanana' && NL.chars.kugua.moves.super.label === '全屏香蕉雨');
+check('老白必杀改「迷雾战场」大烟雾', NL.chars.laobai.moves.super.spawn.type === 'smoke');
+check('看笑了必杀仍为旧手机山（残骸留场）', NL.chars.xiaole.moves.super.spawn.type === 'phonemountain');
+check('选将统一网格：总卡数 15 = 9 形态 + 看笑了 + 5 班友',
+  NL.charOrder.length + NL.bonusOrder.length === 15 && NL.bonusOrder.length === 6 && NL.pickId(14) === 'laobai');
+
+// 黑板之盾：拦敌弹 / 不拦自己 / 推伤敌人
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'tallguy', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 500; bb.p1.facing = 1; bb.p2.x = 1500;
+  bb.p1.energy = 100; bb.p1.state = 'idle'; bb.p1.move = null;
+  bb.p1.startAttack('super');
+  for (let i = 0; i < 40; i++) bb.update();
+  const board = bb.projectiles.filter(q => q.type === 'boardshield')[0];
+  check('黑板之盾生成（跟随持有者 · life=' + (board ? board.life : 0) + '）', !!board && board.def.follow === true && board.life > 200);
+  if (board) {
+    bb.spawnProjectile({ type: 'heart', x: board.x + 320, y: NL.GROUND - 80, dir: -1, owner: bb.p2 });
+    let g = null;
+    for (let i = 0; i < 40; i++) { bb.update(); if (g === null && !bb.projectiles.some(q => q.type === 'heart')) g = i; }
+    check('黑板之盾拦下敌人弹道（第 ' + g + ' 帧，盾仍在）', g !== null && bb.projectiles.some(q => q.type === 'boardshield'));
+    bb.spawnProjectile({ type: 'chalk', x: bb.p1.x + 40, y: NL.GROUND - 80, dir: 1, vy: 0, owner: bb.p1 });
+    let ownGone = null;
+    for (let i = 0; i < 30; i++) { bb.update(); if (ownGone === null && !bb.projectiles.some(q => q.type === 'chalk')) ownGone = i; }
+    check('黑板之盾不拦自己的弹道（自己的粉笔未被盾吃掉）', ownGone === null || ownGone > 25);
+    const b2 = bb.projectiles.filter(q => q.type === 'boardshield')[0];
+    bb.p2.x = b2.x + 46; bb.p2.onGround = true; bb.p2.invuln = 0;
+    const hp0 = bb.p2.hp;
+    for (let i = 0; i < 60; i++) { bb.p2.x = b2.x + 46; bb.p2.invuln = 0; bb.update(); }
+    check('黑板之盾推伤触碰的敌人（-' + Math.round(hp0 - bb.p2.hp) + ' HP）', bb.p2.hp < hp0);
+  }
+})();
+
+// 烟雾：范围 DOT + 遇火大爆炸
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'laobai', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 500; bb.p1.facing = 1; bb.p2.x = 700;
+  bb.p1.energy = 100; bb.p1.state = 'idle'; bb.p1.move = null;
+  bb.p1.startAttack('super');
+  for (let i = 0; i < 40; i++) bb.update();
+  const sm = bb.projectiles.filter(q => q.type === 'smoke')[0];
+  check('烟雾生成（宽 ' + (sm ? sm.def.rect.w : 0) + ' × 高 ' + (sm ? sm.def.rect.h : 0) + '，覆盖二层平台）',
+    !!sm && sm.def.rect.w >= 1400 && sm.def.rect.h >= 340);
+  if (sm) {
+    const hp0 = bb.p2.hp;
+    for (let i = 0; i < 90; i++) { bb.p2.x = 700; bb.p2.invuln = 0; bb.update(); }
+    check('烟雾持续造成伤害（90 帧 -' + Math.round(hp0 - bb.p2.hp) + ' HP）', bb.p2.hp < hp0 - 20);
+    bb.p1.energy = 50; bb.p1.state = 'idle'; bb.p1.move = null;
+    bb.p1.startAttack('skill2');
+    const hp1 = bb.p2.hp;
+    let boomAt = null;
+    for (let i = 0; i < 60; i++) {
+      bb.p2.x = 700; bb.p2.invuln = 0;
+      bb.update();
+      if (!bb.projectiles.some(q => q.type === 'smoke') && boomAt === null) boomAt = i;
+    }
+    check('烟雾遇火大爆炸（第 ' + boomAt + ' 帧引爆 · -' + Math.round(hp1 - bb.p2.hp) + ' HP ≥ 80）',
+      boomAt !== null && hp1 - bb.p2.hp >= 80);
+  }
+})();
+
+// 喷火：距离再增 + 驻留复伤
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'laobai', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 300; bb.p1.facing = 1; bb.p2.x = 700;
+  bb.p1.energy = 50; bb.p1.state = 'idle'; bb.p1.move = null;
+  const hp0 = bb.p2.hp;
+  bb.p1.startAttack('skill2');
+  let reach = 0;
+  for (let i = 0; i < 56; i++) {
+    bb.p2.x = 700; bb.p2.invuln = 0;
+    bb.update();
+    const s = bb.projectiles.filter(q => q.type === 'firestrip')[0];
+    if (s) reach = (s.x + s.def.rect.w / 2) - bb.p1.x;
+  }
+  check('喷火距离再增（火柱前伸 ' + Math.round(reach) + 'px ≥ 600）', reach >= 600);
+  check('喷火驻留复伤（站 56 帧 -' + Math.round(hp0 - bb.p2.hp) + ' HP ≥ 60）', hp0 - bb.p2.hp >= 60);
+})();
+
+// 酒瓶：命中框加高（半空目标也能打到）
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'laobai', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 300; bb.p2.x = 700;
+  bb.p2.y = NL.GROUND - 46; bb.p2.onGround = false;
+  const hp0 = bb.p2.hp;
+  bb.spawnProjectile({ type: 'winebottle', x: 348, y: NL.GROUND - 80, dir: 1, vy: 0, owner: bb.p1 });
+  for (let i = 0; i < 60; i++) { bb.p2.y = NL.GROUND - 46; bb.p2.onGround = false; bb.update(); }
+  check('酒瓶命中框加高（可打到半空目标 -' + Math.round(hp0 - bb.p2.hp) + ' HP）', bb.p2.hp < hp0);
+})();
+
+// 灼烧状态：燃烧水渍 → 附着 DOT → 离开后持续掉血
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'laobai', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 300; bb.p2.x = 1300;
+  bb.spawnProjectile({ type: 'winebottle', x: 340, y: NL.GROUND - 80, dir: 1, vy: 0, owner: bb.p1 });
+  for (let i = 0; i < 90; i++) bb.update();
+  const pd = (bb.hazards || []).filter(h => h.type === 'puddle')[0];
+  check('水渍生成（范围加大）', !!pd);
+  if (pd) {
+    bb.p1.x = pd.x - 200; bb.p1.facing = 1; bb.p1.state = 'idle'; bb.p1.move = null; bb.p1.energy = 50;
+    bb.p1.startAttack('skill2');
+    for (let i = 0; i < 40; i++) bb.update();
+    check('喷火点燃水渍', pd.burning === true);
+    let bt = 0;
+    for (let i = 0; i < 30; i++) { bb.p2.x = pd.x; bb.p2.onGround = true; bb.p2.invuln = 0; bb.update(); bt = Math.max(bt, bb.p2.burnT); }
+    check('触碰燃烧水渍 → 进入灼烧状态（burnT=' + bt + '）', bt > 60);
+    const hp0 = bb.p2.hp;
+    for (let i = 0; i < 60; i++) { bb.p2.x = pd.x + 420; bb.p2.invuln = 0; bb.update(); }
+    check('离开后持续灼烧掉血（-' + Math.round(hp0 - bb.p2.hp) + ' HP）', bb.p2.hp < hp0);
+  }
+})();
+
+// 全屏香蕉雨
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'kugua', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 640; bb.p1.facing = 1; bb.p2.x = 800;
+  bb.p1.energy = 100; bb.p1.state = 'idle'; bb.p1.move = null;
+  bb.p1.startAttack('super');
+  let maxN = 0;
+  for (let i = 0; i < 60; i++) { bb.update(); maxN = Math.max(maxN, bb.projectiles.filter(q => q.type === 'rainbanana').length); }
+  check('全屏香蕉雨（空中同时 ' + maxN + ' 根香蕉 ≥ 12）', maxN >= 12);
+  for (let i = 0; i < 160; i++) bb.update();
+  const peels = (bb.hazards || []).filter(h => h.type === 'banana').length;
+  check('香蕉雨落地留蕉皮（' + peels + ' 片 ≥ 2）', peels >= 2);
+})();
+
+// 手机堆：长时间在场 / 拦敌弹 / 伤害触碰
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'xiaole', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 600; bb.p1.facing = 1; bb.p2.x = 1500;
+  bb.p1.energy = 100; bb.p1.state = 'idle'; bb.p1.move = null;
+  bb.p1.startAttack('super');
+  let pile = null;
+  for (let i = 0; i < 200; i++) { bb.update(); if (!pile) pile = bb.projectiles.filter(q => q.type === 'phonepile')[0]; }
+  check('手机山落地留下手机堆（长时间在场 life=' + (pile ? pile.life : 0) + '）', !!pile && pile.life > 300);
+  if (pile) {
+    const pl = pile.x;
+    bb.spawnProjectile({ type: 'heart', x: pl + 320, y: NL.GROUND - 80, dir: -1, owner: bb.p2 });
+    let g = null;
+    for (let i = 0; i < 40; i++) { bb.update(); if (g === null && !bb.projectiles.some(q => q.type === 'heart')) g = i; }
+    check('手机堆拦下敌人弹道（第 ' + g + ' 帧，堆仍在）', g !== null && bb.projectiles.some(q => q.type === 'phonepile'));
+    const b2 = bb.projectiles.filter(q => q.type === 'phonepile')[0];
+    bb.p2.x = b2.x + 40; bb.p2.onGround = true; bb.p2.invuln = 0;
+    const hp0 = bb.p2.hp;
+    for (let i = 0; i < 60; i++) { bb.p2.x = b2.x + 40; bb.p2.invuln = 0; bb.update(); }
+    check('触碰手机堆受伤（-' + Math.round(hp0 - bb.p2.hp) + ' HP）', bb.p2.hp < hp0);
+  }
 })();
 
 // ============ 12. 主程序 ============

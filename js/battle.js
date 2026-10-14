@@ -51,11 +51,16 @@ var NL = window.NL = window.NL || {};
     laser3: { r: 20, speed: 1450, damage: 62, hitstun: 18, kbx: 340, kvy: -80, life: 60, g: 0, prio: 3 },
     soundwave: { r: 16, speed: 250, damage: 40, hitstun: 15, kbx: 260, kvy: -40, life: 130, g: 0, grow: 0.55, prio: 1 },   // v0.12.1：普通优先级 → 与其它弹道互消
     screenwave: { r: 44, speed: 330, damage: 68, hitstun: 22, kbx: 360, kvy: -200, life: 200, g: 0, grow: 3.0, prio: 3, pierce: true },
-    winebottle: { r: 15, speed: 660, damage: 44, hitstun: 15, kbx: 200, kvy: -80, life: 62, g: 0 },   // v0.12.1：水平直飞约 680px，抵达终点炸开留水渍
+    winebottle: { r: 15, speed: 660, damage: 44, hitstun: 15, kbx: 200, kvy: -80, life: 62, g: 0, rect: { w: 34, h: 118 } },   // v0.13：水平直飞＋加高命中框（不再从站立敌人身上穿过）
     chalk: { r: 12, speed: 1060, damage: 40, hitstun: 14, kbx: 220, kvy: -50, life: 115, g: 120 },   // v0.12.1：更平更远（天花板选手专属）
     eraser: { r: 17, speed: 470, damage: 50, hitstun: 16, kbx: 240, kvy: -90, life: 165, g: 0, returns: 300, prio: 2 },
     blackboard: { r: 70, speed: 0, damage: 96, hitstun: 26, kbx: 320, kvy: -260, life: 400, g: 1500, prio: 2 },
-    firestrip: { r: 20, speed: 0, damage: 36, hitstun: 16, kbx: 220, kvy: -60, life: 46, g: 0, pierce: true, rect: { w: 520, h: 78 }, ignite: true },   // v0.12.1：喷火距离 340→520
+    firestrip: { r: 20, speed: 0, damage: 34, hitstun: 10, kbx: 60, kvy: 0, life: 52, g: 0, pierce: true, tick: 26, rect: { w: 780, h: 200 }, ignite: true },   // v0.13：更长更高（520→780 × 78→200）＋驻留灼烧（轻击退不倒地）
+    /* ===== v0.13 新技能弹道 ===== */
+    boardshield: { r: 64, speed: 0, damage: 24, hitstun: 18, kbx: 400, kvy: -180, life: 260, g: 0, prio: 3, pierce: true, tick: 55, follow: true, offset: 76, yOff: 92 },   // 黑板之盾（跟随持有者）
+    smoke: { r: 34, speed: 0, damage: 12, hitstun: 8, kbx: 40, kvy: 0, life: 215, g: 0, prio: 3, noClash: true, pierce: true, tick: 30, rect: { w: 1500, h: 380 }, smoke: true },   // 大范围烟雾（不参与对撞，持续灼伤）
+    phonepile: { r: 68, speed: 0, damage: 20, hitstun: 12, kbx: 270, kvy: -60, life: 470, g: 0, prio: 3, pierce: true, tick: 50 },                                          // 旧手机堆（残骸留场）
+    rainbanana: { r: 15, speed: 26, damage: 34, hitstun: 14, kbx: 160, kvy: -70, life: 240, g: 950 },                                                                         // 香蕉雨
     bigfire: { r: 30, speed: 0, damage: 78, hitstun: 22, kbx: 300, kvy: -160, life: 62, g: 0, pierce: true, rect: { w: 720, h: 100 }, ignite: true, igniteAll: true, prio: 3 }
   };
 
@@ -214,7 +219,7 @@ var NL = window.NL = window.NL || {};
   Battle.prototype.spawnProjectile = function (o) {
     var def = PROJ_DEFS[o.type];
     if (!def) return;
-    if (this.projectiles.length >= 20) return;
+    if (this.projectiles.length >= 36) return;   // v0.13：上限 20→36（香蕉雨 / 烟雾等大场面）
     var dir = (o.dir === undefined) ? 1 : o.dir;
     this.projectiles.push({
       type: o.type,
@@ -248,6 +253,13 @@ var NL = window.NL = window.NL || {};
     }
     NL.FX.cue(p.x, gy - 10, 'poof', -1);
     NL.FX.cue(p.x + 30, gy - 4, 'poof', 1);
+    // v0.13：留下手机堆——长时间占位、拦敌人攻击（不拦自己）、伤害触碰的敌人
+    this.spawnProjectile({
+      type: 'phonepile',
+      x: U.clamp(p.x, NL.WALL_L + 90, NL.WALL_R - 90),
+      y: NL.GROUND - 64,
+      dir: 1, vy: 0, owner: p.owner
+    });
   };
 
   Battle.prototype.updateProjectiles = function () {
@@ -256,16 +268,21 @@ var NL = window.NL = window.NL || {};
       var p = ps[i], d = p.def;
       p.t++;
       p.life--;
+      if (p.hitT) { for (var htk in p.hitT) { if (p.hitT[htk] > 0) p.hitT[htk]--; } }   // v0.13：驻留弹道再命中冷却
       if (d.grow) p.r += d.grow;     // v0.12：音波随距离变大
       p.vy += (d.g || 0) / 60;
       p.x += p.vx / 60;
       p.y += p.vy / 60;
+      if (d.follow && p.owner) {     // v0.13：黑板之盾跟随持有者
+        p.x = p.owner.x + p.owner.facing * (d.offset || 0);
+        p.y = p.owner.y - (d.yOff || 92);
+      }
       var dead = false;
       if (p.y > NL.GROUND - 4) {
         if (d.bounce) {
           p.y = NL.GROUND - 4;
           p.vy = -Math.abs(p.vy) * 0.65;
-        } else if (p.type === 'banana') {
+        } else if (p.type === 'banana' || p.type === 'rainbanana') {
           this.spawnHazard({ type: 'banana', x: p.x, owner: p.owner });
           NL.FX.cue(p.x, p.y - 8, 'poof', 1);
           dead = true;
@@ -308,7 +325,10 @@ var NL = window.NL = window.NL || {};
       for (var fI = 0; fI < this.fighters.length; fI++) {
         var def = this.fighters[fI];
         if (def === p.owner || !def.canBeHit()) continue;
-        if (d.pierce && p.hitSet && p.hitSet[fI]) continue;
+        if (d.pierce && p.hitSet && p.hitSet[fI]) {
+          if (d.tick && p.hitT && (p.hitT[fI] || 0) <= 0) { /* v0.13：冷却结束允许再次命中 */ }
+          else continue;
+        }
         var hurt = def.getHurtbox();
         var cx = U.clamp(p.x, hurt.x, hurt.x + hurt.w);
         var cy = U.clamp(p.y, hurt.y, hurt.y + hurt.h);
@@ -341,6 +361,7 @@ var NL = window.NL = window.NL || {};
           if (d.pierce) {        // 穿透型：记名后继续飞
             if (!p.hitSet) p.hitSet = {};
             p.hitSet[fI] = 1;
+            if (d.tick) { if (!p.hitT) p.hitT = {}; p.hitT[fI] = d.tick; }   // v0.13：驻留弹道再命中冷却
           } else {
             if (p.type === 'phonemountain') this.shatterMountain(p);
             ps.splice(i, 1);
@@ -374,6 +395,7 @@ var NL = window.NL = window.NL || {};
         for (var cj = ci - 1; cj >= 0; cj--) {
           var cq = ps[cj];
           if (cq.gone || cq.owner === cp.owner) continue;
+          if (cp.def.noClash || cq.def.noClash) continue;   // v0.13：烟雾等不参与对撞
           var mdx = cp.x - cq.x, mdy = cp.y - cq.y;
           var mrr = (cp.r + cq.r) * 0.92;
           if (mdx * mdx + mdy * mdy > mrr * mrr) continue;
@@ -395,6 +417,47 @@ var NL = window.NL = window.NL || {};
         for (var ck = ps.length - 1; ck >= 0; ck--) {
           if (ps[ck].gone) ps.splice(ck, 1);
         }
+      }
+    }
+
+    /* v0.13：烟雾遇火 → 更大范围爆炸（火与烟同归于尽，范围伤害） */
+    for (var si2 = ps.length - 1; si2 >= 0; si2--) {
+      var sp2 = ps[si2];
+      if (sp2.type !== 'smoke' || sp2.boomed) continue;
+      var touched = false;
+      for (var fj2 = 0; fj2 < ps.length; fj2++) {
+        var fp2 = ps[fj2];
+        if (fp2 === sp2) continue;
+        if (fp2.type === 'firestrip' && Math.abs(fp2.x - sp2.x) < 820) { fp2.gone = true; touched = true; }
+      }
+      var haz3 = this.hazards || [];
+      for (var hj3 = 0; hj3 < haz3.length; hj3++) {
+        if (haz3[hj3].type === 'puddle' && haz3[hj3].burning && Math.abs(haz3[hj3].x - sp2.x) < 820) touched = true;
+      }
+      if (touched) this.smokeBoom(sp2);
+    }
+    for (var sk2 = ps.length - 1; sk2 >= 0; sk2--) { if (ps[sk2].gone) ps.splice(sk2, 1); }
+  };
+
+  /* v0.13：烟雾遇火 → 更大范围爆炸 */
+  Battle.prototype.smokeBoom = function (p) {
+    p.boomed = true;
+    p.gone = true;
+    var x = p.x;
+    NL.FX.flash(10, '#FFD9A0');
+    NL.FX.shake(20);
+    NL.SFX.play('hitBig');
+    NL.FX.cue(x, NL.GROUND - 120, 'poof', 1);
+    for (var k = 0; k < 9; k++) {
+      var ang = k * 0.7;
+      NL.FX.cue(x + Math.cos(ang) * (60 + k * 26), NL.GROUND - 70 - Math.abs(Math.sin(ang)) * 130, 'flame', 1);
+    }
+    for (var fI = 0; fI < this.fighters.length; fI++) {
+      var f = this.fighters[fI];
+      if (f === p.owner || !f.canBeHit()) continue;
+      if (Math.abs(f.x - x) < 560) {
+        f.takeHit(p.owner, { damage: 88, hitstun: 26, blockstun: 10, kbx: 480, kvy: -330 });
+        NL.FX.text(f.x, f.y - 175, '轰！！！', { size: 36, color: '#FF9F67', dur: 64 });
       }
     }
   };
@@ -1315,8 +1378,9 @@ var NL = window.NL = window.NL || {};
           for (var fI = 0; fI < this.fighters.length; fI++) {
             var f = this.fighters[fI];
             if (f === h.owner || !f.canBeHit()) continue;
-            if (f.onGround && Math.abs(f.x - h.x) < 58) {
-              f.takeHit(h.owner, { damage: 9, hitstun: 8, blockstun: 6, kbx: 40, kvy: -70 });
+            if (f.onGround && Math.abs(f.x - h.x) < 88) {
+              f.takeHit(h.owner, { damage: 10, hitstun: 8, blockstun: 6, kbx: 30, kvy: 0 });
+              f.burnT = Math.max(f.burnT || 0, 120);   // v0.13：附着灼烧状态（持续掉血）
               NL.FX.cue(f.x, f.y - 12, 'flame', (f.x >= h.x) ? 1 : -1);
             }
           }
@@ -1328,7 +1392,7 @@ var NL = window.NL = window.NL || {};
           var fj = this.fighters[fJ];
           if (fj === h.owner || !fj.canBeHit()) continue;
           if (fj.onGround && Math.abs(fj.x - h.x) < 42) {
-            fj.takeHit(h.owner, { damage: 13, hitstun: 40, blockstun: 8, kbx: 0, kvy: -190 });
+            fj.takeHit(h.owner, { damage: 28, hitstun: 40, blockstun: 8, kbx: 0, kvy: -190 });   // v0.13：蕉皮踩到伤害 13→28
             NL.FX.text(fj.x, fj.y - 150, '踩到香蕉皮！', { size: 28, color: '#FFE066', dur: 56 });
             NL.SFX.play('duang');
             NL.FX.cue(h.x, h.y - 6, 'poof', 1);
@@ -1365,16 +1429,16 @@ var NL = window.NL = window.NL || {};
       } else {
         // 酒水渍
         ctx.fillStyle = h.burning ? 'rgba(90,70,50,0.85)' : 'rgba(140,170,205,0.78)';
-        U.ellipse(ctx, 0, 2, 52, 12);
+        U.ellipse(ctx, 0, 2, 84, 17);   // v0.13：水渍范围加大
         ctx.fill();
         ctx.fillStyle = h.burning ? 'rgba(255,150,60,0.5)' : 'rgba(235,245,255,0.5)';
-        U.ellipse(ctx, -14, 0, 16, 4.5);
+        U.ellipse(ctx, -26, 0, 24, 6);
         ctx.fill();
-        U.ellipse(ctx, 16, 4, 10, 3.2);
+        U.ellipse(ctx, 28, 5, 15, 4.4);
         ctx.fill();
         if (h.burning) {
-          for (var k = 0; k < 3; k++) {
-            var fx = -30 + k * 30;
+          for (var k = 0; k < 5; k++) {
+            var fx = -70 + k * 35;
             var fl = 20 + Math.sin(h.t * 0.4 + k * 2) * 7;
             ctx.fillStyle = (k % 2) ? 'rgba(255,159,67,0.9)' : 'rgba(255,217,59,0.9)';
             ctx.beginPath();
@@ -1478,7 +1542,7 @@ var NL = window.NL = window.NL || {};
   /* ================= v0.12：新弹道绘制（返回 true 表示已处理） ================= */
   Battle.prototype.drawProjExtra = function (ctx, p, dir) {
     var t = p.t;
-    if (p.type === 'banana') {
+    if (p.type === 'banana' || p.type === 'rainbanana') {
       ctx.rotate(t * 0.22 * dir);
       ctx.fillStyle = '#FFE066';
       ctx.strokeStyle = '#B98A2A';
@@ -1605,6 +1669,89 @@ var NL = window.NL = window.NL || {};
       ctx.arc(0, 0, rw2 * 0.9, -1.5, 1.5);
       ctx.closePath();
       ctx.fill();
+      return true;
+    }
+    if (p.type === 'boardshield') {
+      // v0.13：黑板之盾（站立的大黑板，粉笔字）
+      var bh2 = 92, bw2 = 60;
+      ctx.save();
+      ctx.globalAlpha = 0.26 + Math.sin(t * 0.1) * 0.08;
+      ctx.fillStyle = '#BFE9FF';
+      U.roundRectPath(ctx, -bw2 - 12, -bh2 - 12, (bw2 + 12) * 2, (bh2 + 12) * 2, 16);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = '#8A5A2B';
+      ctx.strokeStyle = '#5A3A18';
+      ctx.lineWidth = 4;
+      U.roundRectPath(ctx, -bw2, -bh2, bw2 * 2, bh2 * 2, 10);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#2F5D50';
+      U.roundRectPath(ctx, -bw2 + 7, -bh2 + 7, bw2 * 2 - 14, bh2 * 2 - 14, 6);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(245,245,230,0.85)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-34, -44); ctx.lineTo(30, -44);
+      ctx.moveTo(-34, -22); ctx.lineTo(14, -22);
+      ctx.moveTo(-34, 0); ctx.lineTo(24, 0);
+      ctx.moveTo(-34, 22); ctx.lineTo(-6, 22);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,235,150,0.92)';
+      ctx.font = '900 22px "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('盾', 0, 52);
+      return true;
+    }
+    if (p.type === 'phonepile') {
+      // v0.13：手机堆（旧手机残骸，长时间挡路）
+      ctx.save();
+      ctx.scale(1.2, 1.2);
+      ctx.fillStyle = 'rgba(70,80,95,0.35)';
+      U.ellipse(ctx, 0, 30, 78, 20);
+      ctx.fill();
+      for (var pk2 = 0; pk2 < 6; pk2++) {
+        var px3 = ((pk2 % 3) - 1) * 42;
+        var py3 = -Math.floor(pk2 / 3) * 36;
+        ctx.save();
+        ctx.translate(px3, py3);
+        ctx.rotate((((pk2 * 37) % 11) - 5) * 0.05);
+        drawOldPhoneShape(ctx, (pk2 % 2) ? '#4A5568' : '#6B7280', pk2 % 3 === 0);
+        ctx.restore();
+      }
+      ctx.restore();
+      return true;
+    }
+    if (p.type === 'smoke') {
+      // v0.13：大范围烟雾（两层半透明烟团，缓慢涌动）
+      var rw3 = p.def.rect.w / 2, rh3 = p.def.rect.h / 2;
+      ctx.save();
+      for (var sk3 = 0; sk3 < 7; sk3++) {
+        var sx3 = -rw3 + (sk3 + 0.5) * (p.def.rect.w / 7);
+        var sy3 = rh3 * 0.08 + Math.sin(t * 0.03 + sk3 * 1.7) * 26;
+        var rr3 = 118 + (sk3 % 3) * 26;
+        var g3 = ctx.createRadialGradient(sx3, sy3, 8, sx3, sy3, rr3);
+        g3.addColorStop(0, 'rgba(118,108,98,0.52)');
+        g3.addColorStop(0.65, 'rgba(150,145,138,0.36)');
+        g3.addColorStop(1, 'rgba(170,170,165,0.05)');
+        ctx.fillStyle = g3;
+        ctx.beginPath();
+        ctx.arc(sx3, sy3, rr3, 0, 6.3);
+        ctx.fill();
+      }
+      for (var sk4 = 0; sk4 < 5; sk4++) {
+        var sx4 = -rw3 * 0.8 + (sk4 + 0.5) * (p.def.rect.w * 0.8 / 5 * 1.6);
+        var sy4 = -rh3 * 0.42 + Math.cos(t * 0.026 + sk4 * 2.1) * 22;
+        var rr4 = 104 + (sk4 % 2) * 34;
+        var g4 = ctx.createRadialGradient(sx4, sy4, 8, sx4, sy4, rr4);
+        g4.addColorStop(0, 'rgba(104,96,88,0.44)');
+        g4.addColorStop(1, 'rgba(160,158,152,0.04)');
+        ctx.fillStyle = g4;
+        ctx.beginPath();
+        ctx.arc(sx4, sy4, rr4, 0, 6.3);
+        ctx.fill();
+      }
+      ctx.restore();
       return true;
     }
     if (p.type === 'winebottle') {

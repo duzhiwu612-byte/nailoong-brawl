@@ -574,7 +574,7 @@
           ns1.picking = 0;
           ns1.cursor[0] = 12;
           ns1.update = function () {};
-          log('newsel: 彩蛋阵容=' + NL.bonusOrder.length + ' cursor=' + ns1.cursor[0]);
+          log('newsel: 统一网格 15 卡（5×3，236×176）cursor=' + ns1.cursor[0]);
         } else if (target === 'getupinv') {
           // v0.12.1 起身无敌：倒地→起身期间对手攻击无效
           NL.game.pendingCfg = { mode: '2p', p1: 'nailoong', p2: 'rage' };
@@ -735,6 +735,119 @@
             } catch (e2) { log('flip: 像素比对跳过（' + (e2 && e2.name) + '）'); }
           }
           flipPixelTest();
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'board2') {
+          // v0.13 黑板之盾：跟随壁垒 + 推伤敌人
+          NL.game.pendingCfg = { mode: '2p', p1: 'tallguy', p2: 'nailoong' };
+          NL.game.go('battle');
+          var bd1 = NL.game.scenes.battle.battle;
+          var bg1 = 0;
+          while (bg1 < 2400 && bd1.phase !== 'fight') { bd1.update(); bg1++; }
+          bd1.p1.x = 500; bd1.p1.facing = 1; bd1.p2.x = 800;
+          bd1.p1.energy = 100; bd1.p1.state = 'idle'; bd1.p1.move = null;
+          bd1.p1.startAttack('super');
+          for (var bf1 = 0; bf1 < 34; bf1++) bd1.update();
+          bd1.p2.x = 622; bd1.p2.invuln = 0;
+          for (var bf2 = 0; bf2 < 26; bf2++) { bd1.p2.x = 622; bd1.p2.invuln = 0; bd1.update(); }
+          var bd2 = bd1.projectiles.filter(function (q) { return q.type === 'boardshield'; })[0];
+          log('board2: 盾=' + !!bd2 + (bd2 ? ' x=' + Math.round(bd2.x) + ' life=' + bd2.life : '') + ' p2.hp=' + Math.round(bd1.p2.hp));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'smoke1') {
+          // v0.13 迷雾战场：大范围烟雾覆盖
+          NL.game.pendingCfg = { mode: '2p', p1: 'laobai', p2: 'nailoong' };
+          NL.game.go('battle');
+          var sm1 = NL.game.scenes.battle.battle;
+          var sg1 = 0;
+          while (sg1 < 2400 && sm1.phase !== 'fight') { sm1.update(); sg1++; }
+          sm1.p1.x = 460; sm1.p1.facing = 1; sm1.p2.x = 760;
+          sm1.p1.energy = 100; sm1.p1.state = 'idle'; sm1.p1.move = null;
+          sm1.p1.startAttack('super');
+          for (var sf1 = 0; sf1 < 42; sf1++) sm1.update();
+          var smx = sm1.projectiles.filter(function (q) { return q.type === 'smoke'; })[0];
+          log('smoke1: 烟雾=' + !!smx + (smx ? ' x=' + Math.round(smx.x) + ' rect=' + smx.def.rect.w + 'x' + smx.def.rect.h : ''));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'smokefire') {
+          // v0.13 烟雾遇火大爆炸
+          NL.game.pendingCfg = { mode: '2p', p1: 'laobai', p2: 'nailoong' };
+          NL.game.go('battle');
+          var xf1 = NL.game.scenes.battle.battle;
+          var xg1 = 0;
+          while (xg1 < 2400 && xf1.phase !== 'fight') { xf1.update(); xg1++; }
+          xf1.p1.x = 460; xf1.p1.facing = 1; xf1.p2.x = 760;
+          xf1.p1.energy = 100; xf1.p1.state = 'idle'; xf1.p1.move = null;
+          xf1.p1.startAttack('super');
+          for (var xf2 = 0; xf2 < 40; xf2++) xf1.update();
+          xf1.p1.energy = 50; xf1.p1.state = 'idle'; xf1.p1.move = null;
+          xf1.p1.startAttack('skill2');
+          var boomAt = -1;
+          for (var xf3 = 0; xf3 < 40; xf3++) {
+            xf1.p2.x = 760; xf1.p2.invuln = 0;
+            xf1.update();
+            if (boomAt < 0 && !xf1.projectiles.some(function (q) { return q.type === 'smoke'; })) { boomAt = xf3; }
+            if (boomAt >= 0 && xf3 > boomAt + 4) break;
+          }
+          log('smokefire: 引爆帧=' + boomAt + ' p2.hp=' + Math.round(xf1.p2.hp));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'rain2') {
+          // v0.13 全屏香蕉雨
+          NL.game.pendingCfg = { mode: '2p', p1: 'kugua', p2: 'nailoong' };
+          NL.game.go('battle');
+          var rn1 = NL.game.scenes.battle.battle;
+          var rg1 = 0;
+          while (rg1 < 2400 && rn1.phase !== 'fight') { rn1.update(); rg1++; }
+          rn1.p1.x = 640; rn1.p1.facing = 1; rn1.p2.x = 900;
+          rn1.p1.energy = 100; rn1.p1.state = 'idle'; rn1.p1.move = null;
+          rn1.p1.startAttack('super');
+          var maxRain = 0;
+          for (var rf1 = 0; rf1 < 52; rf1++) {
+            rn1.update();
+            maxRain = Math.max(maxRain, rn1.projectiles.filter(function (q) { return q.type === 'rainbanana'; }).length);
+          }
+          log('rain2: 空中香蕉=' + maxRain + ' 蕉皮=' + rn1.hazards.filter(function (h) { return h.type === 'banana'; }).length);
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'pile2') {
+          // v0.13 手机堆：留场挡路 + 推伤
+          NL.game.pendingCfg = { mode: '2p', p1: 'xiaole', p2: 'nailoong' };
+          NL.game.go('battle');
+          var pl1 = NL.game.scenes.battle.battle;
+          var pg1 = 0;
+          while (pg1 < 2400 && pl1.phase !== 'fight') { pl1.update(); pg1++; }
+          pl1.p1.x = 600; pl1.p1.facing = 1; pl1.p2.x = 900;
+          pl1.p1.energy = 100; pl1.p1.state = 'idle'; pl1.p1.move = null;
+          pl1.p1.startAttack('super');
+          var pile2 = null;
+          for (var pf1 = 0; pf1 < 210; pf1++) {
+            pl1.update();
+            if (!pile2) pile2 = pl1.projectiles.filter(function (q) { return q.type === 'phonepile'; })[0];
+          }
+          if (pile2) {
+            pl1.p2.x = pile2.x + 40; pl1.p2.invuln = 0; pl1.p2.onGround = true;
+            for (var pf2 = 0; pf2 < 10; pf2++) { pl1.p2.x = pile2.x + 40; pl1.p2.invuln = 0; pl1.update(); }
+          }
+          log('pile2: 手机堆=' + !!pile2 + (pile2 ? ' x=' + Math.round(pile2.x) + ' life=' + pile2.life : '') + ' p2.hp=' + Math.round(pl1.p2.hp));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'burn2') {
+          // v0.13 灼烧状态：身上冒火 + 持续掉血
+          NL.game.pendingCfg = { mode: '2p', p1: 'laobai', p2: 'nailoong' };
+          NL.game.go('battle');
+          var br1 = NL.game.scenes.battle.battle;
+          var bg2 = 0;
+          while (bg2 < 2400 && br1.phase !== 'fight') { br1.update(); bg2++; }
+          br1.p1.x = 300; br1.p2.x = 1300;
+          br1.spawnProjectile({ type: 'winebottle', x: 340, y: NL.GROUND - 80, dir: 1, vy: 0, owner: br1.p1 });
+          for (var bf3 = 0; bf3 < 90; bf3++) br1.update();
+          var pd3 = br1.hazards.filter(function (h) { return h.type === 'puddle'; })[0];
+          if (pd3) {
+            br1.p1.x = pd3.x - 200; br1.p1.facing = 1;
+            br1.p1.state = 'idle'; br1.p1.move = null; br1.p1.energy = 50;
+            br1.p1.startAttack('skill2');
+            for (var bf4 = 0; bf4 < 40; bf4++) br1.update();
+            br1.p2.x = pd3.x; br1.p2.invuln = 0; br1.p2.onGround = true;
+            for (var bf5 = 0; bf5 < 26; bf5++) { br1.p2.x = pd3.x; br1.p2.invuln = 0; br1.update(); }
+            br1.p2.x = pd3.x + 120;   // 离开水渍，灼烧仍在
+            for (var bf6 = 0; bf6 < 12; bf6++) br1.update();
+          }
+          log('burn2: 水渍=' + !!pd3 + ' 燃烧=' + !!(pd3 && pd3.burning) + ' p2.burnT=' + br1.p2.burnT + ' p2.hp=' + Math.round(br1.p2.hp));
           NL.game.scenes.battle.update = function () {};
         } else {
           NL.game.go('title');

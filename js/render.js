@@ -726,13 +726,14 @@ var NL = window.NL = window.NL || {};
     ctx.fillStyle = '#000000';
     var shrink = 1 - Math.min(0.45, airH / 800);
     var dsc = f.drawScale || 1;
-    U.ellipse(ctx, f.x, groundY + 8, 62 * shrink * dsc, 12 * shrink * dsc);
+    U.ellipse(ctx, f.x, groundY + 8, 62 * shrink * dsc * (ch.slimX || 1), 12 * shrink * dsc);
     ctx.fill();
     ctx.globalAlpha = 1;
 
     ctx.translate(f.x, f.y - oy);
     var dscale = f.drawScale || 1;
-    ctx.scale(f.facing * pose.sx * sqx * dscale, pose.sy * sqy * dscale);
+    var wmul = (ch.slimX || 1);   // v0.13：瘦身角色（宽向压缩）
+    ctx.scale(f.facing * pose.sx * sqx * dscale * wmul, pose.sy * sqy * dscale);
     if (pose.spin) {
       ctx.translate(2, -84);
       ctx.rotate(pose.spin);
@@ -878,7 +879,16 @@ var NL = window.NL = window.NL || {};
 
     // 脸（像素大头照 / 常规绘制）
     if (useHeadImg) {
-      drawPixelHead(ctx, a, headRec.img);
+      if (wmul !== 1) {   // v0.13：瘦身时不压扁照片头
+        ctx.save();
+        ctx.translate(a.head.x, a.head.y);
+        ctx.scale(1 / wmul, 1);
+        ctx.translate(-a.head.x, -a.head.y);
+        drawPixelHead(ctx, a, headRec.img);
+        ctx.restore();
+      } else {
+        drawPixelHead(ctx, a, headRec.img);
+      }
     } else {
       drawFace(ctx, a, pose, pal);
     }
@@ -900,6 +910,23 @@ var NL = window.NL = window.NL || {};
 
     // 前饰
     if (ch.decorFront) ch.decorFront(ctx, a, f, t);
+
+    // v0.13：灼烧状态（身上冒火）
+    if (f.burnT > 0) {
+      ctx.save();
+      for (var fb2 = 0; fb2 < 3; fb2++) {
+        var fxB = -22 + fb2 * 22 + Math.sin(t * 0.3 + fb2 * 2) * 4;
+        var flB = 22 + Math.sin(t * 0.4 + fb2 * 1.7) * 9;
+        ctx.fillStyle = (fb2 % 2) ? 'rgba(255,159,67,0.85)' : 'rgba(255,217,59,0.85)';
+        ctx.beginPath();
+        ctx.moveTo(fxB - 9, -14);
+        ctx.quadraticCurveTo(fxB - 3, -14 - flB * 0.7, fxB, -14 - flB);
+        ctx.quadraticCurveTo(fxB + 3, -14 - flB * 0.7, fxB + 9, -14);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
 
     ctx.restore();
   }
