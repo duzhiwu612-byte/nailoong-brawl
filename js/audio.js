@@ -122,6 +122,20 @@ var NL = window.NL = window.NL || {};
     superFlash: function () {
       tone({ type: 'sawtooth', f0: 900, f1: 200, dur: 0.35, vol: 0.3 });
       noise({ ftype: 'highpass', f0: 1500, dur: 0.3, vol: 0.2 });
+    },
+    /* ===== v0.12 ===== */
+    substitute: function () {
+      noise({ ftype: 'bandpass', f0: 700, f1: 2400, dur: 0.12, vol: 0.18 });
+      tone({ type: 'sine', f0: 900, f1: 1500, dur: 0.1, vol: 0.18, delay: 0.03 });
+      noise({ ftype: 'lowpass', f0: 500, dur: 0.1, vol: 0.2, delay: 0.1 });
+    },
+    flame: function () {
+      noise({ ftype: 'lowpass', f0: 900, f1: 400, dur: 0.3, vol: 0.22 });
+      tone({ type: 'sawtooth', f0: 180, f1: 90, dur: 0.28, vol: 0.12 });
+    },
+    splash: function () {
+      noise({ ftype: 'bandpass', f0: 1200, f1: 500, dur: 0.16, vol: 0.2, q: 0.8 });
+      tone({ type: 'sine', f0: 380, f1: 180, dur: 0.12, vol: 0.15 });
     }
   };
 

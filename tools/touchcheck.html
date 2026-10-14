@@ -51,7 +51,7 @@
         ok(!!(UI && UI.enabled === true), 'touchUI 已启用（需用 ?touch=1 打开本页）');
 
         var btns = document.querySelectorAll('#touchui .tbtn');
-        ok(btns.length === 18, '虚拟按键总数=18（实际 ' + btns.length + '）');
+        ok(btns.length === 19, '虚拟按键总数=19（实际 ' + btns.length + '）');
 
         function down(el, id) {
           el.dispatchEvent(new PointerEvent('pointerdown', { pointerId: id || 11, bubbles: true, cancelable: true }));

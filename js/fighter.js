@@ -16,6 +16,7 @@ var NL = window.NL = window.NL || {};
     light: false, heavy: false, skill1: false, skill2: false, sup: false,
     pLeft: false, pRight: false, pUp: false, pDown: false,
     pLight: false, pHeavy: false, pSkill1: false, pSkill2: false, pSup: false,
+    pSub: false,
     pDash: 0
   };
   NL.EMPTY_INPUT = EMPTY_INPUT;
@@ -64,7 +65,7 @@ var NL = window.NL = window.NL || {};
 
     this.squash = { x: 1, y: 1 };
     this.seed = U.randInt(0, 999);
-    this.drawScale = NL.MODEL_SCALE || 1;
+    this.drawScale = (NL.MODEL_SCALE || 1) * (this.char.scaleMul || 1);
     this.oppRef = null;
     this.laughStun = false;
     this.meteorLanded = false;
@@ -267,8 +268,13 @@ var NL = window.NL = window.NL || {};
 
   Fighter.prototype.update = function (opp, inp) {
     inp = inp || EMPTY_INPUT;
+    // v0.12 替身术：受击 / 击倒时按 H（P2 小键盘 0）消耗 50 奶量脱身
+    if (inp.pSub && (this.state === 'hurt' || this.state === 'hurtAir' || this.state === 'downed')) {
+      this.trySubstitute(opp);
+    }
     this.oppRef = opp;
     if (this.flash > 0) this.flash--;
+    if (this.subCd > 0) this.subCd--;
     if (this.invuln > 0) this.invuln--;
     if (this.hitCd > 0) this.hitCd--;
     if (this.blockT > 0) this.blockT--;
@@ -472,7 +478,7 @@ var NL = window.NL = window.NL || {};
   };
 
   Fighter.prototype.getHurtbox = function () {
-    var S = NL.MODEL_SCALE || 1;
+    var S = (NL.MODEL_SCALE || 1) * (this.char.scaleMul || 1);
     if (this.state === 'downed' || (this.state === 'ko' && this.onGround)) {
       return { x: this.x - 48 * S, y: this.y - 46 * S, w: 96 * S, h: 46 * S };
     }
@@ -553,6 +559,35 @@ var NL = window.NL = window.NL || {};
     return 'hit';
   };
 
+  /* v0.12：替身术——受击/击倒时消耗一半奶量，原地留木桩、瞬移到攻击者身后 */
+  Fighter.prototype.trySubstitute = function (opp) {
+    if (this.energy < 50 || (this.subCd > 0)) return false;
+    var st = this.state;
+    if (st !== 'hurt' && st !== 'hurtAir' && st !== 'downed') return false;
+    this.energy -= 50;
+    this.subCd = 70;
+    if (this.battle && this.battle.spawnDecoy) this.battle.spawnDecoy(this.x, this.y, this.facing);
+    var tx = opp ? (opp.x - opp.facing * 150) : (this.x - this.facing * 150);
+    tx = U.clamp(tx, (NL.WALL_L || 150) + 60, (NL.WALL_R || 1130) - 60);
+    NL.FX.cue(this.x, this.y - 46, 'poof', 1);
+    this.x = tx;
+    this.y = NL.GROUND;
+    this.vx = 0; this.vy = 0;
+    this.onGround = true;
+    this.state = 'idle'; this.stateTime = 0;
+    this.move = null; this.moveFrame = 0;
+    this.hurtT = 0; this.laughStun = false;
+    this.bounceCount = 0;
+    this.invuln = Math.max(this.invuln, 45);
+    this.flash = 6;
+    if (opp) this.facing = (opp.x >= this.x) ? 1 : -1;
+    this.ghosts.push({ x: this.x, y: this.y, facing: this.facing, a: 0.4 });
+    NL.FX.cue(this.x, this.y - 46, 'poof', -1);
+    NL.FX.text(this.x, this.y - 150, '替身术！', { size: 30, color: '#BFE9FF', dur: 56 });
+    NL.SFX.play('substitute');
+    return true;
+  };
+
   Fighter.prototype.die = function () {
     this.state = 'ko';
     this.stateTime = 0;
@@ -592,8 +627,9 @@ var NL = window.NL = window.NL || {};
     this.meteorLanded = false;
     this.ghosts.length = 0;
     this.dashCd = 0;
+    this.subCd = 0;
     this.jcanCut = false;
-    this.drawScale = NL.MODEL_SCALE || 1;
+    this.drawScale = (NL.MODEL_SCALE || 1) * (this.char.scaleMul || 1);
   };
 
   /* 发射投射物（由招式 spawn 字段驱动） */
@@ -613,15 +649,53 @@ var NL = window.NL = window.NL || {};
       NL.FX.cue(this.x + dir * 48 * S, this.y - 100 * S, 'poof', dir);
       return;
     }
+    // v0.12：巨型香蕉 / 黑板 —— 从高空瞄准对手砸下
+    if (sp.type === 'giantbanana' || sp.type === 'blackboard') {
+      var oppG = this.battle.fighters[1 - this.playerIndex];
+      var txG = U.clamp(oppG ? oppG.x : this.x + dir * 220, NL.WALL_L + 130, NL.WALL_R - 130);
+      this.battle.spawnProjectile({
+        type: sp.type, x: txG, y: NL.GROUND - 950, dir: dir, vy: 120, owner: this
+      });
+      NL.SFX.play('swing');
+      NL.FX.cue(this.x + dir * 50 * S, this.y - 110 * S, 'poof', dir);
+      return;
+    }
+    // v0.12：九一必杀·音波领域 —— 向左右两侧全图扩散的音波墙
+    if (sp.type === 'screenwave') {
+      this.battle.spawnProjectile({ type: 'screenwave', x: this.x, y: this.y - 150 * S, dir: 1, owner: this });
+      this.battle.spawnProjectile({ type: 'screenwave', x: this.x, y: this.y - 150 * S, dir: -1, owner: this });
+      NL.FX.flash(8, '#BFE9FF');
+      NL.FX.shake(10);
+      NL.SFX.play('superFlash');
+      NL.FX.cue(this.x, this.y - 110 * S, 'note', 1);
+      return;
+    }
+    // v0.12：老白喷火 —— 面前形成横向火柱（大招更宽更远）
+    if (sp.type === 'firestrip' || sp.type === 'bigfire') {
+      var isBig = (sp.type === 'bigfire');
+      this.battle.spawnProjectile({
+        type: sp.type,
+        x: this.x + dir * (isBig ? 240 : 175) * S,
+        y: NL.GROUND - 98,
+        dir: dir, vy: 0, owner: this
+      });
+      NL.SFX.play('flame');
+      NL.FX.cue(this.x + dir * 56 * S, this.y - 96 * S, 'flame', dir);
+      return;
+    }
     for (var i = 0; i < n; i++) {
       var off = (n > 1) ? (i - (n - 1) / 2) : 0;
       var vy = 0;
       if (sp.type === 'note') vy = off * 26;
       else if (sp.type === 'coin') vy = -260 + off * 70;
       else if (sp.type === 'rocket') vy = off * 20;
+      else if (sp.type === 'banana') vy = -390 + off * 30;                    // 抛物线
+      else if (sp.type === 'winebottle') vy = -370 + off * 30;                // 抛物线
+      else if (sp.type === 'laser' || sp.type === 'laser3') vy = off * 30;    // 多管扇形
       else vy = off * 16;
       var sy = this.y - 100 * S + off * 8;
       if (sp.type === 'laughwave') { sy = NL.GROUND - 46; vy = 0; }
+      if (sp.type === 'rollmelon') { sy = NL.GROUND - 22; vy = 0; }           // 贴地滚动
       this.battle.spawnProjectile({
         type: sp.type,
         x: this.x + dir * 48 * S,
@@ -633,7 +707,9 @@ var NL = window.NL = window.NL || {};
     }
     NL.SFX.play('swing');
     NL.FX.cue(this.x + dir * 48 * S, this.y - 100 * S,
-      (sp.type === 'minion' || sp.type === 'phone' || sp.type === 'phonespin') ? 'poof'
+      (sp.type === 'minion' || sp.type === 'phone' || sp.type === 'phonespin' ||
+        sp.type === 'banana' || sp.type === 'rollmelon' || sp.type === 'winebottle' ||
+        sp.type === 'chalk' || sp.type === 'eraser') ? 'poof'
         : (sp.type === 'note' ? 'note' : 'flame'), dir);
   };
 

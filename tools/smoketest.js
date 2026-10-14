@@ -101,7 +101,7 @@ check('九形态齐备（慈爱/暗黑/愤怒/战斗/奶龙/空虚/温柔/神龙
 
 // ============ 1.5 胜利宣言（winQuote） ============
 console.log('\n== 胜利宣言 ==');
-const ALL_IDS = NL.charOrder.concat([NL.bonusId || 'xiaole']);
+const ALL_IDS = NL.charOrder.concat(NL.bonusOrder || [NL.bonusId || 'xiaole']);
 check('全部 ' + ALL_IDS.length + ' 角色都有胜利宣言', ALL_IDS.every(id => {
   const q = NL.chars[id] && NL.chars[id].winQuote;
   return typeof q === 'string' && q.length >= 2;
@@ -109,7 +109,7 @@ check('全部 ' + ALL_IDS.length + ' 角色都有胜利宣言', ALL_IDS.every(id
 check('「看笑了」的宣言就是「看笑了」', NL.chars.xiaole.winQuote === '看笑了');
 
 let moveCount = 0, dataErr = [];
-for (const id of NL.charOrder.concat([NL.bonusId])) {
+for (const id of NL.charOrder.concat(NL.bonusOrder)) {
   const ch = NL.chars[id];
   const mv = ch.moves;
   if (!mv) { dataErr.push(id + ': 无招式表'); continue; }
@@ -128,8 +128,8 @@ for (const id of NL.charOrder.concat([NL.bonusId])) {
 }
 check('每只角色招式齐全（' + MOVE_KEYS.length + ' 类）', dataErr.length === 0, dataErr.slice(0, 6).join(' | '));
 check('全角色招式总数 > 80（实际 ' + moveCount + '）', moveCount > 80);
-check('全员血量 ≥ 1350（更耐打）', NL.charOrder.every(id => NL.chars[id].stats.maxHp >= 1350));
-check('J 轻击伤害已下调（每段 ≤ 55）', NL.charOrder.every(id => {
+check('全员血量 ≥ 1350（更耐打）', ALL_IDS.every(id => NL.chars[id].stats.maxHp >= 1350));
+check('J 轻击伤害已下调（每段 ≤ 55）', ALL_IDS.every(id => {
   for (let i = 1; i <= 5; i++) { const m = NL.chars[id].moves['light' + i]; if (m && m.damage > 55) return false; }
   return true;
 }));
@@ -366,17 +366,17 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
 })();
 (function () {
   let bad = [];
-  for (const id of NL.charOrder.concat([NL.bonusId])) {
+  for (const id of NL.charOrder.concat(NL.bonusOrder)) {
     const m = NL.chars[id].moves;
     if (!(m.heavy && m.heavy.nohit && m.heavy.spawn)) bad.push(id + '.K');
     if (!(m.skill2 && m.skill2.nohit && m.skill2.spawn)) bad.push(id + '.U');
   }
-  check('10 个角色（含看笑了）K/U 全部为远程投射', bad.length === 0, bad.join(','));
+  check('15 个角色（九形态+看笑了+5 班友）K/U 全部为远程投射', bad.length === 0, bad.join(','));
 })();
 (function () {
   // 每个角色的远程重击在中距离（380px）都能命中对手
   let bad = [];
-  for (const id of NL.charOrder.concat([NL.bonusId])) {
+  for (const id of NL.charOrder.concat(NL.bonusOrder)) {
     const bb = new NL.Battle({ mode: '2p', p1: id, p2: 'nailoong' });
     for (let i = 0; i < 120; i++) bb.update();
     bb.p1.x = 300; bb.p2.x = 680;
@@ -385,14 +385,18 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
     for (let i = 0; i < 150; i++) bb.update();
     if (bb.p2.hp >= hp0) bad.push(id);
   }
-  check('10 个角色（含看笑了·手机）K 远程重击 380px 距离均能命中', bad.length === 0, bad.join(','));
+  check('15 个角色 K 远程重击 380px 距离均能命中（含香蕉抛物线/镭射/音波/粉笔/酒瓶）', bad.length === 0, bad.join(','));
 })();
 (function () {
   // 每个形态的专属弹道都能生成、飞行并绘制
   const pairs = [['loving', 'heart'], ['dark', 'darkorb'], ['rage', 'flame'], ['war', 'blade'],
     ['nailoong', 'milkbottle'], ['nailoong', 'pacifier'], ['void', 'voidorb'], ['tender', 'petal'],
     ['divine', 'goldwave'], ['sad', 'tear'], ['xiaole', 'phone'], ['xiaole', 'phonespin'],
-    ['xiaole', 'phonemountain'], ['xiaole', 'oldphone']];
+    ['xiaole', 'phonemountain'], ['xiaole', 'oldphone'],
+    ['kugua', 'banana'], ['kugua', 'rollmelon'], ['kugua', 'giantbanana'],
+    ['laser', 'laser'], ['laser', 'laser3'], ['jiuyi', 'soundwave'], ['jiuyi', 'screenwave'],
+    ['tallguy', 'chalk'], ['tallguy', 'eraser'], ['tallguy', 'blackboard'],
+    ['laobai', 'winebottle'], ['laobai', 'firestrip'], ['laobai', 'bigfire']];
   let errs = [];
   for (const [cid, type] of pairs) {
     try {
@@ -403,7 +407,7 @@ console.log('\n== 远程重击（K）/ 远程技能（U） ==');
       for (let i = 0; i < 160; i++) { bb.update(); if (i % 20 === 0) bb.draw(actx); }
     } catch (e) { errs.push(type + ':' + e.message); }
   }
-  check('14 种专属弹道（含手机/回旋手机/旧手机山/碎屏旧机）生成/飞行/绘制无异常', errs.length === 0, errs.join(' | '));
+  check('27 种专属弹道（含手机全家 + 香蕉/苦瓜/镭射/音波/粉笔/黑板擦/酒瓶/火柱）生成/飞行/绘制无异常', errs.length === 0, errs.join(' | '));
 })();
 (function () {
   // 看笑了必杀：旧手机山从高空降临 → 命中 + 爆机散落
@@ -568,7 +572,7 @@ console.log('\n== 联机核心 ==');
 console.log('\n== 全角色全招式冒烟 ==');
 let smokeErr = [];
 let testedMoves = 0;
-for (const id of NL.charOrder.concat([NL.bonusId])) {
+for (const id of NL.charOrder.concat(NL.bonusOrder)) {
   const ch = NL.chars[id];
   for (const key in ch.moves) {
     testedMoves++;
@@ -652,7 +656,7 @@ try {
     ff.state = s; ff.stateTime = 10;
     NL.draw.fighter(actx, ff, 123);
   }
-  for (const id of NL.charOrder.concat([NL.bonusId])) {
+  for (const id of NL.charOrder.concat(NL.bonusOrder)) {
     const ch = NL.chars[id];
     for (const key in ch.moves) {
       const ff = bb.p1;
@@ -725,6 +729,153 @@ TRg.scene = null;
 delete TRg.scenes.__ta; delete TRg.scenes.__tb;
 check('转场生命周期：淡出等待' + (tDefer ? '✓' : '✗') + ' / 切换' + (tSwitch ? '✓' : '✗') + ' / 淡入收尾' + (tDone ? '✓' : '✗'), tDefer && tSwitch && tDone);
 check('instantGo 瞬切（测试页模式）', tInstant);
+
+// ============ 11.6 v0.12 班友参战（新角色 / 地面道具 / 替身术） ============
+console.log('\n== v0.12 班友参战 ==');
+check('5 位班友已注册且全部可玩', ['kugua', 'laser', 'tallguy', 'jiuyi', 'laobai'].every(id => NL.chars[id] && NL.chars[id].playable));
+check('彩蛋阵容 = 看笑了 + 5 班友（选人映射正确）',
+  NL.bonusOrder.length === 6 && NL.pickId(9) === 'xiaole' && NL.pickId(14) === 'laobai' && NL.pickId(2) === NL.charOrder[2]);
+check('苦瓜 = 香蕉身体；九一 = 照片手部保留', NL.chars.kugua.bodyKind === 'banana' && NL.chars.jiuyi.photoHand === 'jiuyi_hand');
+check('大高个整体放大 1.30 且轻击范围加长（light1 出拳距离 > 奶龙）',
+  Math.abs(NL.chars.tallguy.scaleMul - 1.3) < 1e-6 &&
+  NL.chars.tallguy.moves.light1.hitbox.x > NL.chars.nailoong.moves.light1.hitbox.x);
+
+// 香蕉：抛物线落地留皮 → 敌人踩到滑倒
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'kugua', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 300; bb.p2.x = 900;
+  bb.spawnProjectile({ type: 'banana', x: 320, y: NL.GROUND - 80, dir: 1, vy: -390, owner: bb.p1 });
+  for (let i = 0; i < 140; i++) bb.update();
+  const haz = (bb.hazards || []).filter(h => h.type === 'banana').length;
+  check('香蕉落地后留皮（地面道具 ' + haz + ' 个）', haz >= 1);
+  const hp0 = bb.p2.hp;
+  bb.p2.x = bb.hazards[0].x;
+  bb.p2.onGround = true;
+  for (let i = 0; i < 8; i++) bb.update();
+  check('踩到香蕉皮 → 滑倒（掉血 ' + (hp0 - bb.p2.hp) + '，状态=' + bb.p2.state + '）',
+    bb.p2.hp < hp0 && (bb.p2.state === 'hurtAir' || bb.p2.state === 'hurt' || bb.p2.state === 'downed'));
+})();
+
+// 滚地苦瓜：贴地滚动
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'kugua', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 300; bb.p2.x = 1200;
+  bb.spawnProjectile({ type: 'rollmelon', x: 320, y: NL.GROUND - 22, dir: 1, vy: 0, owner: bb.p1 });
+  for (let i = 0; i < 30; i++) bb.update();
+  const p = bb.projectiles[0];
+  check('滚地苦瓜贴地滚动（y≈地面-22，已前进 ' + (p ? Math.round(p.x - 320) : 0) + 'px）',
+    !!p && Math.abs(p.y - (NL.GROUND - 22)) < 6 && p.x > 380);
+})();
+
+// 酒瓶 → 水渍 → 喷火点燃 → 灼伤
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'laobai', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 300; bb.p2.x = 1000;
+  bb.spawnProjectile({ type: 'winebottle', x: 320, y: NL.GROUND - 80, dir: 1, vy: -370, owner: bb.p1 });
+  for (let i = 0; i < 140; i++) bb.update();
+  const pud = (bb.hazards || []).filter(h => h.type === 'puddle');
+  check('酒瓶碎裂留下水渍（' + pud.length + ' 滩）', pud.length >= 1);
+  if (pud.length) {
+    bb.p1.x = pud[0].x - 175;
+    bb.p1.facing = 1;
+    bb.p1.state = 'idle'; bb.p1.move = null;
+    bb.p1.energy = 50;
+    bb.p1.startAttack('skill2');
+    for (let i = 0; i < 40; i++) bb.update();
+    check('喷火碰到水渍 → 短暂燃烧（burning=' + (pud[0].burning ? 'true' : 'false') + '）', pud[0].burning === true);
+    const hp0 = bb.p2.hp;
+    bb.p2.x = pud[0].x;
+    bb.p2.onGround = true;
+    for (let i = 0; i < 60; i++) bb.update();
+    check('燃烧的水渍灼伤站在上面的敌人（-' + (hp0 - bb.p2.hp) + ' HP）', bb.p2.hp < hp0);
+  }
+})();
+
+// 音波随距离变大 + 必杀全屏音波
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'jiuyi', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 300; bb.p2.x = 1400;
+  bb.spawnProjectile({ type: 'soundwave', x: 320, y: NL.GROUND - 80, dir: 1, vy: 0, owner: bb.p1 });
+  const r0 = bb.projectiles[0].r;
+  for (let i = 0; i < 40; i++) bb.update();
+  const r1 = bb.projectiles[0] ? bb.projectiles[0].r : 0;
+  check('音波随距离逐渐变大（r ' + r0 + ' → ' + r1.toFixed(1) + '）', r1 > r0 + 15);
+  bb.p1.x = 500; bb.p1.energy = 100; bb.p1.state = 'idle'; bb.p1.move = null; bb.p2.x = 900;
+  bb.p1.startAttack('super');
+  let bothDir = false, tall = 0;
+  for (let i = 0; i < 46; i++) {
+    bb.update();
+    const sw = bb.projectiles.filter(q => q.type === 'screenwave');
+    if (sw.length >= 2 && sw.some(q => q.vx < 0) && sw.some(q => q.vx > 0)) bothDir = true;
+    if (sw.length) tall = Math.max(tall, sw[0].r);
+  }
+  check('必杀·音波领域向左右两侧全图扩散（双向=' + bothDir + ' 已扩至 r=' + tall.toFixed(0) + '）', bothDir && tall > 60);
+})();
+
+// 镭射高速光束
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'laser', p2: 'nailoong' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 300; bb.p2.x = 1300;
+  bb.spawnProjectile({ type: 'laser', x: 320, y: NL.GROUND - 80, dir: 1, vy: 0, owner: bb.p1 });
+  for (let i = 0; i < 10; i++) bb.update();
+  const lz = bb.projectiles[0];
+  check('镭射为高速光束（10 帧内 ' + (lz ? Math.round(lz.x - 320) + 'px' : '已飞完') + '）', !lz || lz.x - 320 > 200);
+})();
+
+// 替身术：受击时消耗一半奶量 → 留木桩 + 瞬移 + 无敌
+(function () {
+  const bb = new NL.Battle({ mode: '2p', p1: 'nailoong', p2: 'loving' });
+  for (let i = 0; i < 120; i++) bb.update();
+  bb.p1.x = 500; bb.p2.x = 600; bb.p2.facing = -1;
+  bb.p1.energy = 100;
+  bb.p1.takeHit(bb.p2, { damage: 30, hitstun: 20, kbx: 200, kvy: 0 });
+  const st0 = bb.p1.state;
+  const x0 = bb.p1.x;
+  const inp = Object.assign({}, NL.EMPTY_INPUT, { pSub: true });
+  bb.p1.update(bb.p2, inp);
+  check('替身术：受击时按 H → 50 奶量 + 留木桩 + 瞬移到身后 + 无敌',
+    bb.p1.energy === 50 && st0 !== 'idle' && bb.p1.state === 'idle' &&
+    Math.abs(bb.p1.x - x0) > 100 && bb.p1.invuln > 30 && (bb.decoys || []).length >= 1,
+    'st ' + st0 + '→' + bb.p1.state + ' x ' + Math.round(x0) + '→' + Math.round(bb.p1.x) + ' e=' + bb.p1.energy);
+  bb.p1.energy = 40;
+  bb.p1.subCd = 0;
+  bb.p1.takeHit(bb.p2, { damage: 20, hitstun: 20, kbx: 100, kvy: 0 });
+  const stA = bb.p1.state;
+  bb.p1.update(bb.p2, inp);
+  check('替身术：奶量不足 50 无法发动（受击回能后 ' + bb.p1.energy + '）',
+    bb.p1.state === stA && bb.p1.energy >= 40 && bb.p1.energy < 50);
+  bb.p1.state = 'idle'; bb.p1.energy = 100; bb.p1.subCd = 0;
+  bb.p1.update(bb.p2, inp);
+  check('替身术：未受击（站立）时无法发动', bb.p1.state === 'idle' && bb.p1.energy === 100);
+})();
+
+// 大高个体型与受击框
+(function () {
+  const bt = new NL.Battle({ mode: '2p', p1: 'tallguy', p2: 'nailoong' });
+  const hn = new NL.Battle({ mode: '2p', p1: 'nailoong', p2: 'nailoong' });
+  const hT = bt.p1.getHurtbox(), hN = hn.p1.getHurtbox();
+  check('大高个受击框更高（' + hT.h.toFixed(0) + ' vs ' + hN.h.toFixed(0) + '）', hT.h > hN.h + 20);
+  check('大高个绘制比例放大（drawScale ' + bt.p1.drawScale.toFixed(2) + '）', bt.p1.drawScale > 1.0);
+})();
+
+// 联机掩码 bit12（替身）
+(function () {
+  const fk = { KeyA: false, KeyD: false, KeyW: false, KeyS: false, KeyJ: false, KeyK: false, KeyL: false, KeyU: false, KeyI: false, KeyH: false };
+  const saved = NL.Input.isDown;
+  NL.Input.isDown = function (c) { return !!fk[c]; };
+  const smp = NL.netUtil.makeSampler();
+  smp.sample();
+  fk.KeyH = true;
+  const m = smp.sample();
+  NL.Input.isDown = saved;
+  check('联机掩码包含替身位（bit12）', (m & 4096) === 4096);
+  check('掩码解码含 pSub', NL.netUtil.decodeMask(4096).pSub === true && NL.netUtil.decodeMask(0).pSub === false);
+})();
 
 // ============ 12. 主程序 ============
 console.log('\n== 主程序 ==');

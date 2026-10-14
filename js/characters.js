@@ -570,5 +570,181 @@ var NL = window.NL = window.NL || {};
     out.super.spawn = { at: 22, type: 'phonemountain', count: 1 };
     return out;
   })();
+  /* ============================================================
+     v0.12 班友参战！！五位真人表情包角色（照片头 + 代码身体）
+     苦瓜 / 镭射 / 大高个 / 九一 / 老白 —— 每人专属远程与机制
+     ============================================================ */
+
+  /* 1. 苦瓜 —— 香蕉身体：扔香蕉（抛物线·落地留皮·踩到滑倒）+ 滚地苦瓜 */
+  chars.kugua = {
+    id: 'kugua', name: '苦瓜', title: '蕉皮刺客',
+    winQuote: '尝一口苦瓜吧，苦苦的～',
+    desc: '一颗行走的香蕉，见人就扔香蕉和苦瓜。踩到它的蕉皮——恭喜你，滑倒了。',
+    playable: true,
+    bodyKind: 'banana',
+    pal: {
+      body: '#FFE066', bodyDark: '#F0C93A', belly: '#FFF6D8', outline: '#B98A2A',
+      blush: '#FFB8C4', eye: '#3A2C14', mouth: '#7A4A2B', horn: '#F8E8A8'
+    },
+    headScale: 1.18, bodyScale: 0.88,
+    stats: { maxHp: 1450, walk: 335, back: 295, jump: 880, jump2: 805, dash: 645, weight: 0.88 },
+    moves: (function () {
+      var m = chain([
+        mv('light1', '蕉皮甩', 'jabF', 4, 4, 7, { x: 26, y: -78, w: 58, h: 46 }, 24, 120, 0),
+        mv('light2', '香蕉连打', 'quickJabs', 5, 4, 9, { x: 26, y: -80, w: 64, h: 50 }, 26, 140, 0),
+        mv('light3', '大蕉横扫', 'bigSwing', 8, 5, 14, { x: 24, y: -90, w: 84, h: 62 }, 36, 280, -240, { hitstun: 20 }),
+        mv('light4', '苦瓜砸', 'stickChop', 6, 4, 12, { x: 22, y: -86, w: 66, h: 54 }, 32, 190, 0, { lunge: 90 })
+      ]);
+      m.heavy = mv('heavy', '扔香蕉', 'castF', 12, 4, 20, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { nohit: true, spawn: { at: 12, type: 'banana', count: 1 } });
+      m.air = mv('air', '空中蕉击', 'airDrop', 5, 6, 10, { x: 18, y: -72, w: 72, h: 62 }, 38, 230, 0, { air: true, hitstun: 18 });
+      m.upLight = mv('upLight', '上挑蕉', 'uppercut', 7, 5, 15, { x: 20, y: -110, w: 66, h: 86 }, 58, 130, -430);
+      m.upHeavy = mv('upHeavy', '双蕉扑', 'pounceSlam', 9, 6, 17, { x: 16, y: -100, w: 84, h: 74 }, 76, 340, -350, { lunge: 290 });
+      m.guardLight = mv('guardLight', '蕉皮绊', 'parryCounter', 4, 4, 18, { x: 24, y: -92, w: 72, h: 58 }, 85, 330, -250, { invuln: [1, 12] });
+      m.guardHeavy = mv('guardHeavy', '香蕉背摔', 'throwGrab', 8, 6, 20, { x: 8, y: -100, w: 78, h: 102 }, 102, 0, -420, { unblockable: true, throwTo: true });
+      m.skill1 = mv('skill1', '蕉皮突进', 'jetDash', 8, 12, 16, { x: 20, y: -84, w: 68, h: 66 }, 66, 360, -150, { cost: 25, lunge: 400, big: true, vxDecay: 0.96 });
+      m.skill2 = mv('skill2', '滚地苦瓜', 'castF', 12, 4, 22, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 25, nohit: true, spawn: { at: 12, type: 'rollmelon', count: 1 } });
+      m.super = mv('super', '巨型香蕉压顶', 'castF', 20, 4, 26, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 20, type: 'giantbanana', count: 1 } });
+      return m;
+    })()
+  };
+
+  /* 2. 镭射 —— 奶龙身体：激光眼！直线镭射 / 双管 / 镭射风暴 */
+  chars.laser = {
+    id: 'laser', name: '镭射', title: '红眼杀手',
+    winQuote: '被我的眼神击穿了吧。',
+    desc: '眼睛里装着两台红色激光器。别和他对视——真的会被击穿。',
+    playable: true,
+    pal: {
+      body: '#F2C838', bodyDark: '#DBA81E', belly: '#FBF08E', outline: '#D8A012',
+      blush: '#FFAEC0', eye: '#2A2012', mouth: '#7A4A2B', horn: '#F8E8A8'
+    },
+    headScale: 1.16, bodyScale: 0.87,
+    stats: { maxHp: 1350, walk: 340, back: 305, jump: 875, jump2: 800, dash: 660, weight: 0.86 },
+    moves: (function () {
+      var m = chain([
+        mv('light1', '铁指戳', 'jabF', 4, 4, 7, { x: 24, y: -80, w: 58, h: 46 }, 25, 120, 0),
+        mv('light2', '双指', 'jabB', 4, 4, 7, { x: 24, y: -78, w: 60, h: 48 }, 27, 140, 0),
+        mv('light3', '戳戳戳', 'quickJabs', 5, 4, 9, { x: 26, y: -80, w: 66, h: 52 }, 30, 160, 0),
+        mv('light4', '甩头怒击', 'bigSwing', 9, 5, 15, { x: 24, y: -92, w: 86, h: 64 }, 40, 310, -260, { hitstun: 22 })
+      ]);
+      m.heavy = mv('heavy', '镭射眼', 'castF', 10, 4, 20, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { nohit: true, spawn: { at: 10, type: 'laser', count: 1 } });
+      m.air = mv('air', '空中踢', 'airDrop', 5, 6, 11, { x: 18, y: -70, w: 72, h: 62 }, 39, 240, 0, { air: true, hitstun: 18 });
+      m.upLight = mv('upLight', '上勾击', 'uppercut', 6, 5, 15, { x: 20, y: -108, w: 66, h: 84 }, 60, 130, -440);
+      m.upHeavy = mv('upHeavy', '扑击', 'pounceSlam', 9, 6, 17, { x: 16, y: -96, w: 82, h: 72 }, 80, 350, -370, { lunge: 300 });
+      m.guardLight = mv('guardLight', '眼神反击', 'parryCounter', 4, 4, 18, { x: 24, y: -88, w: 72, h: 58 }, 88, 340, -260, { invuln: [1, 14] });
+      m.guardHeavy = mv('guardHeavy', '过肩摔', 'throwGrab', 8, 6, 20, { x: 8, y: -92, w: 78, h: 100 }, 105, 0, -430, { unblockable: true, throwTo: true });
+      m.skill1 = mv('skill1', '镭射冲刺', 'jetDash', 8, 12, 16, { x: 20, y: -86, w: 68, h: 68 }, 66, 370, -160, { cost: 25, lunge: 410, big: true, vxDecay: 0.96 });
+      m.skill2 = mv('skill2', '双管镭射', 'castF', 12, 4, 22, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 25, nohit: true, spawn: { at: 12, type: 'laser', count: 2, spread: 34 } });
+      m.super = mv('super', '镭射风暴', 'castF', 18, 6, 26, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 18, type: 'laser3', count: 3, spread: 64 } });
+      return m;
+    })()
+  };
+
+  /* 3. 大高个 —— 奶龙身体但超级高！手长脚长·轻击范围加长（粉笔头 / 回旋黑板擦 / 黑板压顶） */
+  chars.tallguy = {
+    id: 'tallguy', name: '大高个', title: '天花板选手',
+    winQuote: '站得高，赢得也高。',
+    desc: '全班最高的那位，手臂比别人长一截——轻击够得着你的那种。武器是粉笔和黑板擦。',
+    playable: true,
+    scaleMul: 1.30,
+    pal: {
+      body: '#F2C838', bodyDark: '#DBA81E', belly: '#FBF08E', outline: '#D8A012',
+      blush: '#FFAEC0', eye: '#2A2012', mouth: '#7A4A2B', horn: '#F8E8A8'
+    },
+    headScale: 0.98, bodyScale: 1.0,
+    stats: { maxHp: 1600, walk: 305, back: 275, jump: 835, jump2: 765, dash: 590, weight: 1.05 },
+    moves: (function () {
+      var m = chain([
+        mv('light1', '拍肩掌', 'jabF', 5, 4, 8, { x: 34, y: -84, w: 74, h: 50 }, 27, 130, 0),
+        mv('light2', '长臂横扫', 'jabB', 5, 4, 8, { x: 34, y: -84, w: 78, h: 52 }, 29, 150, 0),
+        mv('light3', '黑板擦拍', 'stickChop', 6, 4, 10, { x: 32, y: -90, w: 80, h: 56 }, 34, 200, 0, { lunge: 110 }),
+        mv('light4', '长臂大抡', 'bigSwing', 9, 5, 15, { x: 32, y: -96, w: 96, h: 68 }, 42, 330, -270, { hitstun: 22 })
+      ]);
+      m.heavy = mv('heavy', '粉笔头', 'castF', 10, 4, 18, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { nohit: true, spawn: { at: 10, type: 'chalk', count: 1 } });
+      m.air = mv('air', '泰山压顶', 'airDrop', 5, 6, 12, { x: 18, y: -74, w: 74, h: 64 }, 40, 240, 0, { air: true, hitstun: 18 });
+      m.upLight = mv('upLight', '长臂上撩', 'uppercut', 7, 5, 15, { x: 20, y: -114, w: 68, h: 90 }, 60, 130, -440);
+      m.upHeavy = mv('upHeavy', '长臂扑压', 'pounceSlam', 9, 6, 17, { x: 16, y: -102, w: 86, h: 76 }, 80, 350, -370, { lunge: 300 });
+      m.guardLight = mv('guardLight', '大手一拍', 'parryCounter', 4, 4, 18, { x: 24, y: -94, w: 72, h: 62 }, 88, 340, -260, { invuln: [1, 13] });
+      m.guardHeavy = mv('guardHeavy', '举高高背摔', 'throwGrab', 8, 6, 20, { x: 8, y: -104, w: 80, h: 106 }, 106, 0, -430, { unblockable: true, throwTo: true });
+      m.skill1 = mv('skill1', '大步冲撞', 'jetDash', 8, 12, 16, { x: 22, y: -88, w: 72, h: 70 }, 68, 380, -160, { cost: 25, lunge: 420, big: true, vxDecay: 0.955 });
+      m.skill2 = mv('skill2', '回旋黑板擦', 'castF', 11, 4, 22, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 25, nohit: true, spawn: { at: 11, type: 'eraser', count: 1 } });
+      m.super = mv('super', '黑板压顶', 'castF', 20, 4, 26, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 20, type: 'blackboard', count: 1 } });
+      return m;
+    })()
+  };
+
+  /* 4. 九一 —— 照片头 + 照片手（原图手部保留）！会随距离变大的音波 + 全屏音波必杀 */
+  chars.jiuyi = {
+    id: 'jiuyi', name: '九一', title: '音浪少年',
+    winQuote: '叫九一，记住这个名字！',
+    desc: '头是原图、拳头也是原图的狠人。喊一声就是一道音波——离得越远，音波越大。',
+    playable: true,
+    photoHand: 'jiuyi_hand',
+    pal: {
+      body: '#F2C838', bodyDark: '#DBA81E', belly: '#FBF08E', outline: '#D8A012',
+      blush: '#FFAEC0', eye: '#2A2012', mouth: '#7A4A2B', horn: '#F8E8A8'
+    },
+    headScale: 1.16, bodyScale: 0.87,
+    stats: { maxHp: 1400, walk: 340, back: 300, jump: 880, jump2: 810, dash: 655, weight: 0.88 },
+    moves: (function () {
+      var m = chain([
+        mv('light1', '一拳', 'jabF', 4, 4, 7, { x: 24, y: -80, w: 58, h: 46 }, 26, 130, 0),
+        mv('light2', '连拳', 'jabB', 4, 4, 7, { x: 26, y: -78, w: 62, h: 48 }, 28, 150, 0),
+        mv('light3', '重拳', 'quickJabs', 5, 4, 9, { x: 26, y: -80, w: 68, h: 52 }, 31, 170, 0),
+        mv('light4', '大喝一声', 'bigSwing', 9, 5, 15, { x: 24, y: -92, w: 86, h: 64 }, 41, 310, -260, { hitstun: 22 })
+      ]);
+      m.heavy = mv('heavy', '音波', 'castF', 11, 4, 20, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { nohit: true, spawn: { at: 11, type: 'soundwave', count: 1 } });
+      m.air = mv('air', '落拳', 'airDrop', 5, 6, 11, { x: 18, y: -72, w: 72, h: 62 }, 39, 235, 0, { air: true, hitstun: 18 });
+      m.upLight = mv('upLight', '上勾拳', 'uppercut', 7, 5, 15, { x: 20, y: -110, w: 66, h: 88 }, 59, 130, -435);
+      m.upHeavy = mv('upHeavy', '冲天拳', 'pounceSlam', 9, 6, 17, { x: 16, y: -100, w: 84, h: 74 }, 78, 345, -355, { lunge: 295 });
+      m.guardLight = mv('guardLight', '喊一声', 'parryCounter', 4, 4, 18, { x: 24, y: -92, w: 72, h: 60 }, 86, 335, -255, { invuln: [1, 12] });
+      m.guardHeavy = mv('guardHeavy', '过肩背摔', 'throwGrab', 8, 6, 20, { x: 8, y: -100, w: 78, h: 102 }, 104, 0, -425, { unblockable: true, throwTo: true });
+      m.skill1 = mv('skill1', '冲拳突进', 'jetDash', 8, 12, 16, { x: 20, y: -88, w: 68, h: 68 }, 67, 370, -160, { cost: 25, lunge: 415, big: true, vxDecay: 0.96 });
+      m.skill2 = mv('skill2', '双音波', 'castF', 13, 4, 22, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 25, nohit: true, spawn: { at: 13, type: 'soundwave', count: 2, spread: 40 } });
+      m.super = mv('super', '音波领域', 'castF', 20, 6, 28, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 20, type: 'screenwave', count: 1 } });
+      return m;
+    })()
+  };
+
+  /* 5. 老白 —— 奶龙身体：扔酒瓶（碎地留水渍）+ 喷火（火柱碰水渍会短暂燃烧） */
+  chars.laobai = {
+    id: 'laobai', name: '老白', title: '微醺酒仙',
+    winQuote: '干了这杯，胜负随意。',
+    desc: '白衣飘飘、手不离瓶。酒瓶碎了留一滩水渍，再点上一把火——地上全是陷阱。',
+    playable: true,
+    pal: {
+      body: '#F2C838', bodyDark: '#DBA81E', belly: '#FBF08E', outline: '#D8A012',
+      blush: '#FFAEC0', eye: '#2A2012', mouth: '#7A4A2B', horn: '#F8E8A8'
+    },
+    headScale: 1.16, bodyScale: 0.87,
+    stats: { maxHp: 1420, walk: 330, back: 295, jump: 870, jump2: 800, dash: 645, weight: 0.9 },
+    moves: (function () {
+      var m = chain([
+        mv('light1', '瓶击', 'jabF', 4, 4, 7, { x: 24, y: -80, w: 58, h: 46 }, 25, 120, 0),
+        mv('light2', '瓶底砸', 'stickChop', 5, 4, 8, { x: 24, y: -84, w: 64, h: 50 }, 28, 170, 0, { lunge: 80 }),
+        mv('light3', '连瓶击', 'quickJabs', 5, 4, 9, { x: 26, y: -80, w: 66, h: 52 }, 31, 165, 0),
+        mv('light4', '仰头猛击', 'bigSwing', 9, 5, 15, { x: 24, y: -92, w: 86, h: 64 }, 41, 310, -260, { hitstun: 22 })
+      ]);
+      m.heavy = mv('heavy', '扔酒瓶', 'castF', 12, 4, 20, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { nohit: true, spawn: { at: 12, type: 'winebottle', count: 1 } });
+      m.air = mv('air', '醉拳下落', 'airDrop', 5, 6, 11, { x: 18, y: -72, w: 72, h: 62 }, 39, 235, 0, { air: true, hitstun: 18 });
+      m.upLight = mv('upLight', '醉挑', 'uppercut', 7, 5, 15, { x: 20, y: -110, w: 66, h: 86 }, 59, 130, -435);
+      m.upHeavy = mv('upHeavy', '酒坛扑', 'pounceSlam', 9, 6, 17, { x: 16, y: -100, w: 84, h: 74 }, 78, 345, -355, { lunge: 295 });
+      m.guardLight = mv('guardLight', '醉步反击', 'parryCounter', 4, 4, 18, { x: 24, y: -92, w: 72, h: 60 }, 86, 335, -255, { invuln: [1, 12] });
+      m.guardHeavy = mv('guardHeavy', '醉摔', 'throwGrab', 8, 6, 20, { x: 8, y: -100, w: 78, h: 102 }, 104, 0, -425, { unblockable: true, throwTo: true });
+      m.skill1 = mv('skill1', '酒劲冲锋', 'jetDash', 8, 12, 16, { x: 20, y: -86, w: 68, h: 68 }, 66, 370, -160, { cost: 25, lunge: 410, big: true, vxDecay: 0.96 });
+      m.skill2 = mv('skill2', '喷火', 'castF', 12, 4, 24, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 25, nohit: true, spawn: { at: 12, type: 'firestrip', count: 1 } });
+      m.super = mv('super', '烈焰咆哮', 'castF', 20, 8, 28, { x: 0, y: -86, w: 1, h: 1 }, 0, 0, 0, { cost: 100, nohit: true, big: true, superMove: true, spawn: { at: 20, type: 'bigfire', count: 1 } });
+      return m;
+    })()
+  };
+
+  /* v0.12：彩蛋阵容（选人界面左侧大卡「看笑了」+ 右侧竖排 5 位班友） */
+  NL.bonusOrder = ['xiaole', 'kugua', 'laser', 'tallguy', 'jiuyi', 'laobai'];
+  NL.pickId = function (idx) {
+    if (idx === undefined || idx === null) return null;
+    var o = NL.charOrder;
+    if (idx < o.length) return o[idx];
+    return NL.bonusOrder[idx - o.length] || null;
+  };
   NL.bonusId = 'xiaole';
 })();

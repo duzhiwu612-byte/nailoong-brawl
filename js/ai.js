@@ -139,6 +139,17 @@ var NL = window.NL = window.NL || {};
     var dist = Math.abs(dx);
     var dir = dx >= 0 ? 1 : -1;
 
+    // v0.12：受击/击倒时有机会用替身术脱身（消耗一半奶量）
+    if (f.state === 'hurt' || f.state === 'hurtAir' || f.state === 'downed') {
+      if (this._subWait === undefined) this._subWait = 0;
+      if (this._subWait <= 0 && f.energy >= 50) {
+        this._subWait = 26;
+        if (Math.random() < 0.45 + this.level * 0.15) s.pSub = true;
+      } else if (this._subWait > 0) {
+        this._subWait--;
+      }
+    }
+
     if (!this.plan || this.planT <= 0) {
       this.decide(f, opp, dist, dir);
     }

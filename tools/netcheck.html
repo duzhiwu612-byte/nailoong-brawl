@@ -123,6 +123,9 @@
       }
       if (ROLE === 'host') NL.Net.host(CODE);
       else NL.Net.join(CODE);
+      log('REQ role=' + ROLE + ' code=' + CODE);
+      setTimeout(function () { log('T8 role=' + ROLE + ' state=' + NL.Net.state + ' peer=' + (!!NL.Net.peer)); }, 8000);
+      setTimeout(function () { log('T20 role=' + ROLE + ' state=' + NL.Net.state + ' peer=' + (!!NL.Net.peer)); }, 20000);
     })();
   </script>
 </body>

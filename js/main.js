@@ -34,22 +34,30 @@ var NL = window.NL = window.NL || {};
     })();
   }
 
-  /* 彩蛋角色像素头像（对局内建模用；缺失时自动回退普通脸） */
+  /* 彩蛋角色像素头像（对局内建模用；缺失时自动回退普通脸）
+     v0.12：看笑了 + 5 位班友（苦瓜/镭射/大高个/九一/老白）+ 九一的手部贴图 */
   NL.headImg = {};
   if (typeof Image !== 'undefined') {
     (function () {
-      var rec = { img: null, ok: false };
-      NL.headImg.xiaole = rec;
-      var cands = ['立绘/xiaole_head.png', '../立绘/xiaole_head.png'];
-      var ei = 0;
-      var im = new Image();
-      im.onload = function () { rec.img = im; rec.ok = true; };
-      im.onerror = function () {
-        ei++;
-        if (ei < cands.length) { im.src = cands[ei]; }
-        else { rec.ok = false; }
-      };
-      im.src = cands[ei];
+      var hids = ['xiaole', 'kugua', 'laser', 'tallguy', 'jiuyi', 'laobai', 'jiuyi_hand'];
+      for (var hi = 0; hi < hids.length; hi++) {
+        (function (hid) {
+          var rec = { img: null, ok: false };
+          NL.headImg[hid] = rec;
+          var cands = (hid === 'jiuyi_hand')
+            ? ['立绘/jiuyi_hand.png', '../立绘/jiuyi_hand.png']
+            : ['立绘/' + hid + '_head.png', '../立绘/' + hid + '_head.png'];
+          var ei = 0;
+          var im = new Image();
+          im.onload = function () { rec.img = im; rec.ok = true; };
+          im.onerror = function () {
+            ei++;
+            if (ei < cands.length) { im.src = cands[ei]; }
+            else { rec.ok = false; }
+          };
+          im.src = cands[ei];
+        })(hids[hi]);
+      }
     })();
   }
 
@@ -230,7 +238,7 @@ var NL = window.NL = window.NL || {};
       ctx.textAlign = 'center';
       ctx.font = '700 16px "Microsoft YaHei", sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,0.9)';
-      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.11.0 (M13) · 奶娃九形态 · 🌐 联机对战 · 🎁 看笑了 · 🗯 胜利宣言', 640, 706);
+      ctx.fillText('玩法参考《死神VS火影》 · 同人练习作 · v0.12.0 (M14) · 奶娃九形态 · 🌐 联机对战 · 😎 班友参战 · 🥷 替身术', 640, 706);
       ctx.restore();
     }
   };
@@ -675,11 +683,35 @@ var NL = window.NL = window.NL || {};
       }
       if (netFrozen) { left = false; right = false; up = false; down = false; confirm = false; }
 
-      var BONUS = total;   // 彩蛋卡（看笑了）索引 = 9，位于九宫格左侧竖卡
-      if (left) { this.cursor[p] = (idx % 3 === 0) ? BONUS : idx - 1; NL.SFX.play('select'); }
-      else if (right) { this.cursor[p] = (idx === BONUS) ? 3 : (idx + 1) % total; NL.SFX.play('select'); }
-      else if (up) { this.cursor[p] = (idx === BONUS) ? BONUS : (idx + total - 3) % total; NL.SFX.play('select'); }
-      else if (down) { this.cursor[p] = (idx === BONUS) ? BONUS : (idx + 3) % total; NL.SFX.play('select'); }
+      /* v0.12 导航分区：0-8 九宫格 · 9 左侧看笑了大卡 · 10-14 右侧班友小卡 */
+      var XIDX = total;                                   // 9
+      var R0 = total + 1;                                 // 10
+      var RLAST = total + ((NL.bonusOrder ? NL.bonusOrder.length : 2) - 1);   // 14
+      if (left) {
+        var nl2;
+        if (idx === XIDX) nl2 = XIDX;
+        else if (idx >= R0) nl2 = 2 + 3 * Math.min(2, idx - R0);
+        else nl2 = (idx % 3 === 0) ? XIDX : idx - 1;
+        this.cursor[p] = nl2; NL.SFX.play('select');
+      } else if (right) {
+        var nr2;
+        if (idx === XIDX) nr2 = 3;
+        else if (idx >= R0) nr2 = (idx === RLAST) ? R0 : idx + 1;
+        else nr2 = (idx % 3 === 2) ? R0 + Math.min(2, Math.floor(idx / 3)) : idx + 1;
+        this.cursor[p] = nr2; NL.SFX.play('select');
+      } else if (up) {
+        var nu2;
+        if (idx === XIDX) nu2 = XIDX;
+        else if (idx >= R0) nu2 = (idx === R0) ? RLAST : idx - 1;
+        else nu2 = (idx < 3) ? idx + 6 : idx - 3;
+        this.cursor[p] = nu2; NL.SFX.play('select');
+      } else if (down) {
+        var nd2;
+        if (idx === XIDX) nd2 = R0;
+        else if (idx >= R0) nd2 = (idx === RLAST) ? R0 : idx + 1;
+        else nd2 = (idx >= 6) ? idx - 6 : idx + 3;
+        this.cursor[p] = nd2; NL.SFX.play('select');
+      }
 
       if (NL.Input.consumePressed('Escape')) {
         NL.SFX.play('back');
@@ -700,8 +732,8 @@ var NL = window.NL = window.NL || {};
 
       // 选对手时按 K：🎲 随机
       if (!netFrozen && game.mode.type === 'ai' && p === 1 && NL.Input.consumePressed('KeyK')) {
-        this.cursor[1] = U.randInt(0, total);
-        var rid = (this.cursor[1] === total) ? NL.bonusId : order[this.cursor[1]];
+        this.cursor[1] = U.randInt(0, total - 1 + (NL.bonusOrder ? NL.bonusOrder.length : 1));
+        var rid = NL.pickId(this.cursor[1]);
         this.hint = '🎲 随机到「' + NL.chars[rid].name + '」！按 J 确认';
         this.hintT = 90;
         NL.SFX.play('select');
@@ -709,7 +741,7 @@ var NL = window.NL = window.NL || {};
 
       idx = this.cursor[p];
       if (confirm && !netFrozen) {
-        var cid = (idx === total) ? NL.bonusId : order[idx];
+        var cid = NL.pickId(idx);
         var ch = NL.chars[cid];
         if (!ch.playable) {
           this.shakeT = 14;
@@ -895,7 +927,10 @@ var NL = window.NL = window.NL || {};
         }
       }
 
-      /* ===== 彩蛋卡：看笑了（左侧竖卡，像素头 + 奶龙身体） ===== */
+      /* ===== 彩蛋阵容：左侧大卡「看笑了」+ 右侧 5 位班友竖排小卡（v0.12） ===== */
+      var bOrder = NL.bonusOrder || [NL.bonusId];
+      var xid = bOrder[0];
+      var xch = NL.chars[xid];
       var bsel = (this.cursor[this.picking] === order.length);
       var bx = 14, by = 96, bwid = 156, bhei = 562;
       ctx.save();
@@ -903,7 +938,7 @@ var NL = window.NL = window.NL || {};
       U.roundRectPath(ctx, bx, by, bwid, bhei, 16);
       ctx.fill();
       ctx.restore();
-      var bp = NL.portraits && NL.portraits[NL.bonusId];
+      var bp = NL.portraits && NL.portraits[xid];
       if (bp && bp.ok) {
         ctx.save();
         U.roundRectPath(ctx, bx + 3, by + 3, bwid - 6, bhei - 6, 14);
@@ -913,7 +948,7 @@ var NL = window.NL = window.NL || {};
         ctx.fillRect(bx + 3, by + bhei - 96, bwid - 6, 90);
         ctx.restore();
       } else {
-        NL.draw.fighter(ctx, makePreview(NL.chars[NL.bonusId], bx + bwid / 2, by + bhei - 110, 0.6, 77, 'idle'), t);
+        NL.draw.fighter(ctx, makePreview(xch, bx + bwid / 2, by + bhei - 110, 0.6, 77, 'idle'), t);
       }
       ctx.save();
       ctx.textAlign = 'center';
@@ -922,9 +957,9 @@ var NL = window.NL = window.NL || {};
       ctx.font = '900 24px "Microsoft YaHei", sans-serif';
       ctx.strokeStyle = '#5A4318';
       ctx.lineWidth = 6;
-      ctx.strokeText('看笑了', bx + bwid / 2, by + bhei - 66);
+      ctx.strokeText(xch.name, bx + bwid / 2, by + bhei - 66);
       ctx.fillStyle = '#5A4318';
-      ctx.fillText('看笑了', bx + bwid / 2, by + bhei - 66);
+      ctx.fillText(xch.name, bx + bwid / 2, by + bhei - 66);
       ctx.font = '700 13px "Microsoft YaHei", sans-serif';
       ctx.fillStyle = '#8A6A30';
       ctx.fillText('彩蛋 · 像素限定', bx + bwid / 2, by + bhei - 40);
@@ -955,7 +990,7 @@ var NL = window.NL = window.NL || {};
         ctx.stroke();
         ctx.restore();
       }
-      if (this.picking === 1 && this.picks[0] === NL.bonusId) {
+      if (this.picking === 1 && this.picks[0] === xid) {
         ctx.save();
         ctx.font = '900 18px "Microsoft YaHei", sans-serif';
         ctx.textAlign = 'right';
@@ -967,6 +1002,80 @@ var NL = window.NL = window.NL || {};
         ctx.fillStyle = '#68CB6E';
         ctx.fillText('已选 ✓', bx + bwid - 10, by + 78);
         ctx.restore();
+      }
+
+      /* ===== v0.12：右侧竖排 5 位班友小卡 ===== */
+      var railX = 1104, railW = 162, railH = 104, railGap = 8;
+      var railY0 = 96 + (562 - (5 * railH + 4 * railGap)) / 2;
+      for (var rbi = 1; rbi < bOrder.length; rbi++) {
+        var rid2 = bOrder[rbi];
+        var rch = NL.chars[rid2];
+        var ry2 = railY0 + (rbi - 1) * (railH + railGap);
+        var rsel = (this.cursor[this.picking] === order.length + rbi);
+        ctx.save();
+        ctx.fillStyle = rch.playable ? 'rgba(255,250,235,0.95)' : 'rgba(205,205,205,0.9)';
+        U.roundRectPath(ctx, railX, ry2, railW, railH, 14);
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        U.roundRectPath(ctx, railX + 2, ry2 + 2, railW - 4, railH - 4, 12);
+        ctx.clip();
+        NL.draw.fighter(ctx, makePreview(rch, railX + railW * 0.30, ry2 + railH - 24, 0.42, rbi * 19 + 5, 'idle'), t + rbi * 37);
+        ctx.restore();
+        // 名字 + 称号 + 同学标签
+        ctx.save();
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.lineJoin = 'round';
+        ctx.font = '900 12px "Microsoft YaHei", sans-serif';
+        ctx.fillStyle = '#FF6B9D';
+        ctx.fillText('😎 同学', railX + 76, ry2 + 17);
+        ctx.font = '900 20px "Microsoft YaHei", sans-serif';
+        ctx.strokeStyle = '#5A4318';
+        ctx.lineWidth = 5;
+        ctx.strokeText(rch.name, railX + 76, ry2 + 42);
+        ctx.fillStyle = '#5A4318';
+        ctx.fillText(rch.name, railX + 76, ry2 + 42);
+        ctx.font = '700 12px "Microsoft YaHei", sans-serif';
+        ctx.fillStyle = '#8A6A30';
+        ctx.fillText(rch.title || '', railX + 76, ry2 + 66);
+        ctx.restore();
+        if (rsel) {
+          ctx.save();
+          ctx.strokeStyle = '#FFD93B';
+          ctx.lineWidth = 6;
+          U.roundRectPath(ctx, railX + 1, ry2 + 1, railW - 2, railH - 2, 14);
+          ctx.stroke();
+          ctx.font = '900 15px "Microsoft YaHei", sans-serif';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          ctx.fillStyle = '#FF6B9D';
+          ctx.strokeStyle = '#5A4318';
+          ctx.lineWidth = 4;
+          ctx.strokeText('▼ 选择中', railX + railW - 8, ry2 + railH - 15);
+          ctx.fillText('▼ 选择中', railX + railW - 8, ry2 + railH - 15);
+          ctx.restore();
+        } else {
+          ctx.save();
+          ctx.strokeStyle = '#5A4318';
+          ctx.lineWidth = 3.5;
+          U.roundRectPath(ctx, railX, ry2, railW, railH, 14);
+          ctx.stroke();
+          ctx.restore();
+        }
+        if (this.picking === 1 && this.picks[0] === rid2) {
+          ctx.save();
+          ctx.font = '900 14px "Microsoft YaHei", sans-serif';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          ctx.lineJoin = 'round';
+          ctx.strokeStyle = '#5A4318';
+          ctx.lineWidth = 4;
+          ctx.strokeText('已选 ✓', railX + railW - 8, ry2 + 17);
+          ctx.fillStyle = '#68CB6E';
+          ctx.fillText('已选 ✓', railX + railW - 8, ry2 + 17);
+          ctx.restore();
+        }
       }
 
       // 提示

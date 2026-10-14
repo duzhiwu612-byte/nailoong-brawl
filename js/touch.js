@@ -102,6 +102,7 @@ var NL = window.NL = window.NL || {};
   mkBtn(cAtk, 'KeyI', '必杀', 'I', 'left:128px; top:0px;');
   mkBtn(cAtk, 'KeyK', '重击', 'K·远程', 'left:64px; top:64px;');
   mkBtn(cAtk, 'KeyJ', '轻击', 'J', 'left:128px; top:64px;');
+  mkBtn(cAtk, 'KeyH', '替身', 'H·受击时', 'left:0px; top:64px;');
 
   /* 右下：菜单（标题/模式/选人） */
   var cMenu = mkCluster('tc-cluster-menu',
@@ -383,9 +384,19 @@ var NL = window.NL = window.NL || {};
         sc.cursor[sc.picking] = NL.charOrder.length;
         NL.SFX && NL.SFX.play && NL.SFX.play('select');
         keyTap('KeyJ');
+      } else if (x >= 1104 && x <= 1266 && y >= 96 && y <= 660 && NL.bonusOrder && NL.bonusOrder.length > 1) {
+        // v0.12：右侧班友竖排小卡（点哪张选哪张）
+        var railH2 = 104, railGap2 = 8;
+        var railY0b = 96 + (562 - (5 * railH2 + 4 * railGap2)) / 2;
+        var rbi2 = Math.floor((y - railY0b) / (railH2 + railGap2));
+        if (rbi2 >= 0 && rbi2 < NL.bonusOrder.length - 1) {
+          sc.cursor[sc.picking] = NL.charOrder.length + 1 + rbi2;
+          NL.SFX && NL.SFX.play && NL.SFX.play('select');
+          keyTap('KeyJ');
+        }
       } else if (aiOpp && x >= 1006 && x <= 1256 && y >= 658 && y <= 706) {
         // 🎲 随机对手（选对手阶段）
-        sc.cursor[1] = Math.floor(Math.random() * (NL.charOrder.length + 1));
+        sc.cursor[1] = Math.floor(Math.random() * (NL.charOrder.length + (NL.bonusOrder ? NL.bonusOrder.length : 1)));
         NL.SFX && NL.SFX.play && NL.SFX.play('select');
         keyTap('KeyJ');
       }

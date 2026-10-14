@@ -456,6 +456,125 @@
             log('flow-5 instantGo 瞬切: ' + d5);
             log('FLOW-DONE ' + ((d1 && d2 && d3 && d4 && d5) ? '全部通过' : '有失败!'));
           })();
+        } else if (target === 'kugua') {
+          // v0.12 苦瓜：香蕉抛物线（空中定格）
+          NL.game.pendingCfg = { mode: '2p', p1: 'kugua', p2: 'nailoong' };
+          NL.game.go('battle');
+          var kb0 = NL.game.scenes.battle.battle;
+          var kg = 0;
+          while (kg < 2400 && kb0.phase !== 'fight') { kb0.update(); kg++; }
+          kb0.p1.x = 330; kb0.p2.x = 900;
+          kb0.p1.startAttack('heavy');
+          for (var kf = 0; kf < 26; kf++) kb0.update();
+          log('kugua: 香蕉飞行 ' + kb0.projectiles.map(function (q) { return q.type + '@' + Math.round(q.x) + ',' + Math.round(q.y); }).join('|'));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'kuguap') {
+          // v0.12 苦瓜：蕉皮留在地上
+          NL.game.pendingCfg = { mode: '2p', p1: 'kugua', p2: 'nailoong' };
+          NL.game.go('battle');
+          var kb1 = NL.game.scenes.battle.battle;
+          var kg1 = 0;
+          while (kg1 < 2400 && kb1.phase !== 'fight') { kb1.update(); kg1++; }
+          kb1.p1.x = 330; kb1.p2.x = 900;
+          kb1.spawnProjectile({ type: 'banana', x: 360, y: NL.GROUND - 80, dir: 1, vy: -390, owner: kb1.p1 });
+          for (var kf1 = 0; kf1 < 130; kf1++) kb1.update();
+          log('kuguap: 蕉皮=' + kb1.hazards.length + ' 位置=' + (kb1.hazards[0] ? Math.round(kb1.hazards[0].x) : '-'));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'kuguaslip') {
+          // v0.12 苦瓜：对手踩到蕉皮滑倒
+          NL.game.pendingCfg = { mode: '2p', p1: 'kugua', p2: 'nailoong' };
+          NL.game.go('battle');
+          var kb2 = NL.game.scenes.battle.battle;
+          var kg2 = 0;
+          while (kg2 < 2400 && kb2.phase !== 'fight') { kb2.update(); kg2++; }
+          kb2.p1.x = 330; kb2.p2.x = 900;
+          kb2.spawnProjectile({ type: 'banana', x: 360, y: NL.GROUND - 80, dir: 1, vy: -390, owner: kb2.p1 });
+          for (var kf3 = 0; kf3 < 130; kf3++) kb2.update();
+          var hz2 = kb2.hazards.filter(function (h) { return h.type === 'banana'; });
+          if (hz2.length) kb2.p2.x = hz2[0].x;
+          for (var kf4 = 0; kf4 < 26; kf4++) kb2.update();
+          log('kuguaslip: 蕉皮剩=' + kb2.hazards.length + ' p2.state=' + kb2.p2.state + ' p2.hp=' + Math.round(kb2.p2.hp));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'laser') {
+          // v0.12 镭射：激光眼（光束定格）
+          NL.game.pendingCfg = { mode: '2p', p1: 'laser', p2: 'nailoong' };
+          NL.game.go('battle');
+          var lb1 = NL.game.scenes.battle.battle;
+          var lg1 = 0;
+          while (lg1 < 2400 && lb1.phase !== 'fight') { lb1.update(); lg1++; }
+          lb1.p1.x = 300; lb1.p2.x = 1150;
+          lb1.p1.startAttack('heavy');
+          for (var lf = 0; lf < 16; lf++) lb1.update();
+          log('laser: 光束=' + lb1.projectiles.map(function (q) { return q.type + '@' + Math.round(q.x); }).join('|'));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'tallguy') {
+          // v0.12 大高个：与奶龙并排身高对比
+          NL.game.pendingCfg = { mode: '2p', p1: 'tallguy', p2: 'nailoong' };
+          NL.game.go('battle');
+          var tb1 = NL.game.scenes.battle.battle;
+          var tg1 = 0;
+          while (tg1 < 2400 && tb1.phase !== 'fight') { tb1.update(); tg1++; }
+          tb1.p1.x = 430; tb1.p2.x = 850;
+          for (var tf = 0; tf < 8; tf++) tb1.update();
+          log('tallguy: drawScale=' + tb1.p1.drawScale.toFixed(2) + ' 受击框 ' + tb1.p1.getHurtbox().h.toFixed(0) + ' vs 奶龙 ' + tb1.p2.getHurtbox().h.toFixed(0) + ' x=' + tb1.p1.x + ',' + tb1.p2.x);
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'jiuyi') {
+          // v0.12 九一：照片手 + 变大音波
+          NL.game.pendingCfg = { mode: '2p', p1: 'jiuyi', p2: 'nailoong' };
+          NL.game.go('battle');
+          var jb1 = NL.game.scenes.battle.battle;
+          var jg1 = 0;
+          while (jg1 < 2400 && jb1.phase !== 'fight') { jb1.update(); jg1++; }
+          jb1.p1.x = 330; jb1.p2.x = 1150;
+          jb1.p1.energy = 50;
+          jb1.p1.startAttack('skill2');
+          for (var jf = 0; jf < 36; jf++) jb1.update();
+          log('jiuyi: 音波=' + jb1.projectiles.map(function (q) { return 'r' + q.r.toFixed(0) + '@' + Math.round(q.x); }).join('|'));
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'laobai') {
+          // v0.12 老白：水渍 + 火柱点燃
+          NL.game.pendingCfg = { mode: '2p', p1: 'laobai', p2: 'nailoong' };
+          NL.game.go('battle');
+          var ob1 = NL.game.scenes.battle.battle;
+          var og1 = 0;
+          while (og1 < 2400 && ob1.phase !== 'fight') { ob1.update(); og1++; }
+          ob1.p1.x = 330; ob1.p2.x = 1100;
+          ob1.spawnProjectile({ type: 'winebottle', x: 360, y: NL.GROUND - 80, dir: 1, vy: -370, owner: ob1.p1 });
+          for (var of1 = 0; of1 < 130; of1++) ob1.update();
+          var pd = ob1.hazards.filter(function (h) { return h.type === 'puddle'; });
+          if (pd.length) {
+            ob1.p1.x = pd[0].x - 175; ob1.p1.facing = 1;
+            ob1.p1.state = 'idle'; ob1.p1.move = null; ob1.p1.energy = 50;
+            ob1.p1.startAttack('skill2');
+            for (var of2 = 0; of2 < 20; of2++) ob1.update();
+          }
+          log('laobai: 水渍=' + pd.length + ' 燃烧=' + !!(pd[0] && pd[0].burning) + ' 火柱=' + ob1.projectiles.filter(function (q) { return q.type === 'firestrip'; }).length);
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'subst') {
+          // v0.12 替身术：受击 → 按 H → 木桩 + 瞬移
+          NL.game.pendingCfg = { mode: '2p', p1: 'nailoong', p2: 'rage' };
+          NL.game.go('battle');
+          var sb1 = NL.game.scenes.battle.battle;
+          var sg1 = 0;
+          while (sg1 < 2400 && sb1.phase !== 'fight') { sb1.update(); sg1++; }
+          sb1.p1.x = 500; sb1.p2.x = 620; sb1.p2.facing = -1;
+          sb1.p1.energy = 100;
+          sb1.p1.takeHit(sb1.p2, { damage: 24, hitstun: 20, kbx: 120, kvy: 0 });
+          NL.Input.setKey('KeyH', true);
+          sb1.update();
+          setTimeout(function () { NL.Input.setKey('KeyH', false); }, 120);
+          for (var sf1 = 0; sf1 < 6; sf1++) sb1.update();
+          log('subst: 奶量=' + sb1.p1.energy + ' x=' + Math.round(sb1.p1.x) + ' 木桩=' + (sb1.decoys ? sb1.decoys.length : 0) + ' 无敌=' + sb1.p1.invuln);
+          NL.game.scenes.battle.update = function () {};
+        } else if (target === 'newsel') {
+          // v0.12 选人界面：右侧 5 张班友小卡
+          NL.game.mode.type = 'ai';
+          NL.game.go('select');
+          var ns1 = NL.game.scenes.select;
+          ns1.picking = 0;
+          ns1.cursor[0] = 12;
+          ns1.update = function () {};
+          log('newsel: 彩蛋阵容=' + NL.bonusOrder.length + ' cursor=' + ns1.cursor[0]);
         } else {
           NL.game.go('title');
         }
@@ -476,6 +595,9 @@
             if (NL.portraits[pk2] && NL.portraits[pk2].ok) pok++;
           }
           log('final portraits ' + pok + '/' + ptot);
+          var hok = [];
+          for (var hk in (NL.headImg || {})) hok.push(hk + '=' + (NL.headImg[hk].ok ? 1 : 0));
+          log('headImg ' + hok.join(' '));
           log('DONE');
         }, 6000);
       }

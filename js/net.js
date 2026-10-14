@@ -6,12 +6,15 @@ var NL = window.NL = window.NL || {};
 (function () {
   'use strict';
 
-  var NET_VER = 1;
+  var NET_VER = 2;   // v0.12：输入掩码新增 bit12（替身术），旧版互不兼容
   var DELAY = 5;                                       // 输入延迟（帧）
   var CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // 去掉易混的 I O 0 1
+  /* v0.12：CDN 备份链 + 每源 7s 超时回退（jsdelivr 主源曾长时间挂起，实测 fastly/bootcdn/baomitu 可用） */
   var CDN_LIST = [
-    'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js',
     'https://fastly.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js',
+    'https://cdn.bootcdn.net/ajax/libs/peerjs/1.5.4/peerjs.min.js',
+    'https://lib.baomitu.com/peerjs/1.5.4/peerjs.min.js',
+    'https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js',
     'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'
   ];
   var ICE = [
@@ -20,7 +23,7 @@ var NL = window.NL = window.NL || {};
   ];
 
   /* ================= 输入采样器：键盘/触屏按键 → 位掩码 =================
-     bit0-3 方向按住 · bit4 跳 · bit5-9 轻/重/技1/技2/必杀（边沿）· bit10-11 虚步 */
+     bit0-3 方向按住 · bit4 跳 · bit5-9 轻/重/技1/技2/必杀（边沿）· bit10-11 虚步 · bit12 替身 */
   function makeSampler() {
     var prev = {};
     var sTick = 0;
@@ -43,6 +46,7 @@ var NL = window.NL = window.NL || {};
         if (edge('KeyL', I.isDown('KeyL'))) m |= 128;
         if (edge('KeyU', I.isDown('KeyU'))) m |= 256;
         if (edge('KeyI', I.isDown('KeyI'))) m |= 512;
+        if (edge('KeyH', I.isDown('KeyH'))) m |= 4096;      // bit12 替身术（v0.12）
         if (edge('KeyA', left)) {
           if (sTick - tapAt.left <= 14) m |= 1024;      // 双击左 → 虚步
           tapAt.left = sTick;
@@ -65,6 +69,7 @@ var NL = window.NL = window.NL || {};
       pLeft: false, pRight: false, pUp: !!(m & 16), pDown: false,
       pLight: !!(m & 32), pHeavy: !!(m & 64), pSkill1: !!(m & 128),
       pSkill2: !!(m & 256), pSup: !!(m & 512),
+      pSub: !!(m & 4096),
       pDash: (dy === 1) ? -1 : ((dy === 2) ? 1 : 0)
     };
   }
@@ -121,12 +126,28 @@ var NL = window.NL = window.NL || {};
       }
       var s = document.createElement('script');
       s.src = CDN_LIST[idx++];
+      var settled = false;
+      var timer = setTimeout(function () {          // v0.12：单源 7s 超时 → 换下一源
+        if (settled) return;
+        settled = true;
+        try { s.remove(); } catch (e) {}
+        tryLoad();
+      }, 7000);
       s.onload = function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
         self._libLoading = false;
         var cbs = self._libCbs; self._libCbs = [];
         for (var i = 0; i < cbs.length; i++) { try { cbs[i](null); } catch (e) {} }
       };
-      s.onerror = function () { try { s.remove(); } catch (e) {} tryLoad(); };
+      s.onerror = function () {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        try { s.remove(); } catch (e) {}
+        tryLoad();
+      };
       document.head.appendChild(s);
     }
     tryLoad();

@@ -6,11 +6,11 @@ var NL = window.NL = window.NL || {};
   var KEYMAP = [
     { // 1P
       left: 'KeyA', right: 'KeyD', up: 'KeyW', down: 'KeyS',
-      light: 'KeyJ', heavy: 'KeyK', skill1: 'KeyL', skill2: 'KeyU', sup: 'KeyI'
+      light: 'KeyJ', heavy: 'KeyK', skill1: 'KeyL', skill2: 'KeyU', sup: 'KeyI', sub: 'KeyH'
     },
     { // 2P（小键盘）
       left: 'ArrowLeft', right: 'ArrowRight', up: 'ArrowUp', down: 'ArrowDown',
-      light: 'Numpad1', heavy: 'Numpad2', skill1: 'Numpad3', skill2: 'Numpad4', sup: 'Numpad5'
+      light: 'Numpad1', heavy: 'Numpad2', skill1: 'Numpad3', skill2: 'Numpad4', sup: 'Numpad5', sub: 'Numpad0'
     }
   ];
 
@@ -26,6 +26,7 @@ var NL = window.NL = window.NL || {};
       light: false, heavy: false, skill1: false, skill2: false, sup: false,
       pLeft: false, pRight: false, pUp: false, pDown: false,
       pLight: false, pHeavy: false, pSkill1: false, pSkill2: false, pSup: false,
+      pSub: false,
       pDash: 0
     };
   }
@@ -58,7 +59,7 @@ var NL = window.NL = window.NL || {};
         var pairs = [
           ['left', 'pLeft'], ['right', 'pRight'], ['up', 'pUp'], ['down', 'pDown'],
           ['light', 'pLight'], ['heavy', 'pHeavy'],
-          ['skill1', 'pSkill1'], ['skill2', 'pSkill2'], ['sup', 'pSup']
+          ['skill1', 'pSkill1'], ['skill2', 'pSkill2'], ['sup', 'pSup'], ['sub', 'pSub']
         ];
         for (var i = 0; i < pairs.length; i++) {
           var code = m[pairs[i][0]];

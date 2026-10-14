@@ -42,7 +42,21 @@ var NL = window.NL = window.NL || {};
     blade: { r: 20, speed: 620, damage: 66, hitstun: 18, kbx: 330, kvy: -210, life: 85, g: 0, blockable: true },
     petal: { r: 20, speed: 560, damage: 60, hitstun: 18, kbx: 320, kvy: -250, life: 95, g: 20, blockable: true },
     voidorb: { r: 26, speed: 460, damage: 72, hitstun: 20, kbx: 370, kvy: -220, life: 110, g: 0, blockable: true },
-    tear: { r: 19, speed: 540, damage: 63, hitstun: 18, kbx: 330, kvy: -240, life: 95, g: 60, blockable: true }
+    tear: { r: 19, speed: 540, damage: 63, hitstun: 18, kbx: 330, kvy: -240, life: 95, g: 60, blockable: true },
+    /* ===== v0.12 新角色专属弹道 ===== */
+    banana: { r: 15, speed: 430, damage: 30, hitstun: 14, kbx: 150, kvy: -50, life: 280, g: 900 },
+    rollmelon: { r: 21, speed: 400, damage: 46, hitstun: 16, kbx: 230, kvy: -130, life: 155, g: 0 },
+    giantbanana: { r: 58, speed: 0, damage: 92, hitstun: 24, kbx: 300, kvy: -300, life: 400, g: 1500, prio: 2 },
+    laser: { r: 13, speed: 1500, damage: 52, hitstun: 16, kbx: 300, kvy: -60, life: 60, g: 0, prio: 2 },
+    laser3: { r: 20, speed: 1450, damage: 62, hitstun: 18, kbx: 340, kvy: -80, life: 60, g: 0, prio: 3 },
+    soundwave: { r: 16, speed: 250, damage: 40, hitstun: 15, kbx: 260, kvy: -40, life: 130, g: 0, grow: 0.55, prio: 2 },
+    screenwave: { r: 44, speed: 330, damage: 68, hitstun: 22, kbx: 360, kvy: -200, life: 200, g: 0, grow: 3.0, prio: 3, pierce: true },
+    winebottle: { r: 15, speed: 400, damage: 44, hitstun: 15, kbx: 200, kvy: -80, life: 280, g: 880 },
+    chalk: { r: 9, speed: 980, damage: 40, hitstun: 14, kbx: 210, kvy: -50, life: 95, g: 260 },
+    eraser: { r: 17, speed: 470, damage: 50, hitstun: 16, kbx: 240, kvy: -90, life: 165, g: 0, returns: 300, prio: 2 },
+    blackboard: { r: 70, speed: 0, damage: 96, hitstun: 26, kbx: 320, kvy: -260, life: 400, g: 1500, prio: 2 },
+    firestrip: { r: 20, speed: 0, damage: 36, hitstun: 16, kbx: 220, kvy: -60, life: 46, g: 0, pierce: true, rect: { w: 340, h: 78 }, ignite: true },
+    bigfire: { r: 30, speed: 0, damage: 78, hitstun: 22, kbx: 300, kvy: -160, life: 62, g: 0, pierce: true, rect: { w: 720, h: 100 }, ignite: true, igniteAll: true, prio: 3 }
   };
 
   function Battle(cfg) {
@@ -78,6 +92,8 @@ var NL = window.NL = window.NL || {};
     this.matchOver = false;
     this.winnerIdx = -1;
     this.announce = null;
+    this.hazards = [];
+    this.decoys = [];
 
     NL.FX.clear();
     this.setAnnounce('第 1 回合', '先干饭，再打架！', 100);
@@ -125,6 +141,8 @@ var NL = window.NL = window.NL || {};
     this.resolveHits(f1, f2);
     this.resolveHits(f2, f1);
     this.updateProjectiles();
+    this.updateHazards();
+    this.updateDecoys();
     NL.camUpdate(this.cam, f1, f2);
 
     f1.hpGhost = U.approach(f1.hpGhost, f1.hp, 2.4);
@@ -238,6 +256,7 @@ var NL = window.NL = window.NL || {};
       var p = ps[i], d = p.def;
       p.t++;
       p.life--;
+      if (d.grow) p.r += d.grow;     // v0.12：音波随距离变大
       p.vy += (d.g || 0) / 60;
       p.x += p.vx / 60;
       p.y += p.vy / 60;
@@ -246,6 +265,16 @@ var NL = window.NL = window.NL || {};
         if (d.bounce) {
           p.y = NL.GROUND - 4;
           p.vy = -Math.abs(p.vy) * 0.65;
+        } else if (p.type === 'banana') {
+          this.spawnHazard({ type: 'banana', x: p.x, owner: p.owner });
+          NL.FX.cue(p.x, p.y - 8, 'poof', 1);
+          dead = true;
+        } else if (p.type === 'winebottle') {
+          this.shatterBottle(p, p.x);
+          dead = true;
+        } else if (p.type === 'giantbanana') {
+          this.shatterGiantBanana(p, p.x);
+          dead = true;
         } else {
           var cmap = {
             coffee: 'splash', wok: 'splash', note: 'note', laughball: 'note', laughwave: 'note',
@@ -273,11 +302,20 @@ var NL = window.NL = window.NL || {};
       for (var fI = 0; fI < this.fighters.length; fI++) {
         var def = this.fighters[fI];
         if (def === p.owner || !def.canBeHit()) continue;
+        if (d.pierce && p.hitSet && p.hitSet[fI]) continue;
         var hurt = def.getHurtbox();
         var cx = U.clamp(p.x, hurt.x, hurt.x + hurt.w);
         var cy = U.clamp(p.y, hurt.y, hurt.y + hurt.h);
-        var ddx = p.x - cx, ddy = p.y - cy;
-        if (ddx * ddx + ddy * ddy <= (p.r + 4) * (p.r + 4)) {
+        var overlap;
+        if (d.rect) {          // v0.12：矩形判定（火柱 / 音波墙）
+          var rw = d.rect.w / 2, rh = d.rect.h / 2;
+          overlap = (hurt.x < p.x + rw && hurt.x + hurt.w > p.x - rw &&
+                     hurt.y < p.y + rh && hurt.y + hurt.h > p.y - rh);
+        } else {
+          var ddx = p.x - cx, ddy = p.y - cy;
+          overlap = (ddx * ddx + ddy * ddy <= (p.r + 4) * (p.r + 4));
+        }
+        if (overlap) {
           var blocked = (def.state === 'block') && d.blockable !== false;
           def.takeHit(p.owner, { damage: d.damage, hitstun: d.hitstun, blockstun: 8, kbx: d.kbx, kvy: d.kvy, deepStun: d.stun }, blocked);
           if (blocked) {
@@ -292,9 +330,31 @@ var NL = window.NL = window.NL || {};
           }
           this.hitstop = Math.max(this.hitstop, d.damage >= 60 ? 6 : 4);
           NL.FX.shake(4);
-          if (p.type === 'phonemountain') this.shatterMountain(p);
-          ps.splice(i, 1);
+          if (p.type === 'winebottle') this.shatterBottle(p, cx);
+          if (p.type === 'giantbanana') this.shatterGiantBanana(p, cx);
+          if (d.pierce) {        // 穿透型：记名后继续飞
+            if (!p.hitSet) p.hitSet = {};
+            p.hitSet[fI] = 1;
+          } else {
+            if (p.type === 'phonemountain') this.shatterMountain(p);
+            ps.splice(i, 1);
+          }
           break;
+        }
+      }
+      // v0.12：火柱点燃水渍
+      if (d.ignite) {
+        var hazL = this.hazards || [];
+        for (var hi2 = 0; hi2 < hazL.length; hi2++) {
+          var hh2 = hazL[hi2];
+          if (hh2.type !== 'puddle' || hh2.burning) continue;
+          if (d.igniteAll || Math.abs(hh2.x - p.x) < d.rect.w / 2 + 40) {
+            hh2.burning = true;
+            hh2.burnT = 220;
+            NL.FX.cue(hh2.x, hh2.y - 24, 'flame', 1);
+            NL.FX.cue(hh2.x - 18, hh2.y - 32, 'flame', -1);
+            NL.SFX.play('flame');
+          }
         }
       }
     }
@@ -372,6 +432,7 @@ var NL = window.NL = window.NL || {};
       ctx.save();
       ctx.translate(p.x, p.y);
       var dir = p.vx >= 0 ? 1 : -1;
+      if (this.drawProjExtra(ctx, p, dir)) { ctx.restore(); continue; }
       if (p.type === 'note') {
         ctx.strokeStyle = '#FF9FDF';
         ctx.lineWidth = 5;
@@ -806,6 +867,8 @@ var NL = window.NL = window.NL || {};
     this.p1.resetRound(430, 1);
     this.p2.resetRound(850, -1);
     this.projectiles = [];
+    this.hazards = [];
+    this.decoys = [];
     NL.FX.clear();
     NL.camUpdate(this.cam, this.p1, this.p2, true);
     this.setAnnounce('第 ' + this.round + ' 回合', '能不能吃到零食就看这局了！', 100);
@@ -919,6 +982,8 @@ var NL = window.NL = window.NL || {};
       }
     }
 
+    this.drawHazards(ctx);
+    this.drawDecoys(ctx);
     var fs = this.fighters.slice().sort(function (a, b) { return a.y - b.y; });
     var drop = this.introOffset();
     for (var i = 0; i < fs.length; i++) {
@@ -1211,6 +1276,415 @@ var NL = window.NL = window.NL || {};
     ctx.font = '700 13px monospace';
     ctx.fillText('phase=' + this.phase + ' t=' + this.phaseT + ' hitstop=' + this.hitstop + ' slow=' + this.slowT + ' time=' + this.time, 12, 700);
     ctx.restore();
+  };
+
+  /* ================= v0.12：地面道具（香蕉皮 / 酒水渍）与替身木桩 ================= */
+  Battle.prototype.spawnHazard = function (o) {
+    if (!this.hazards) this.hazards = [];
+    var same = [];
+    for (var i = 0; i < this.hazards.length; i++) {
+      if (this.hazards[i].type === o.type) same.push(i);
+    }
+    if (same.length >= 4) this.hazards.splice(same[0], 1);   // 同类最多 4 个（性能护栏）
+    this.hazards.push({
+      type: o.type, x: o.x, y: NL.GROUND - 8,
+      owner: o.owner || null, t: 0,
+      life: (o.type === 'banana') ? 320 : 420,
+      burning: false, burnT: 0
+    });
+  };
+
+  Battle.prototype.updateHazards = function () {
+    var hs = this.hazards;
+    if (!hs) return;
+    for (var i = hs.length - 1; i >= 0; i--) {
+      var h = hs[i];
+      h.t++; h.life--;
+      if (h.life <= 0) { hs.splice(i, 1); continue; }
+      // 燃烧的水渍：周期性灼伤站在上面的敌人
+      if (h.burning) {
+        h.burnT--;
+        if (h.burnT <= 0) h.burning = false;
+        else if (h.t % 22 === 0) {
+          for (var fI = 0; fI < this.fighters.length; fI++) {
+            var f = this.fighters[fI];
+            if (f === h.owner || !f.canBeHit()) continue;
+            if (f.onGround && Math.abs(f.x - h.x) < 58) {
+              f.takeHit(h.owner, { damage: 9, hitstun: 8, blockstun: 6, kbx: 40, kvy: -70 });
+              NL.FX.cue(f.x, f.y - 12, 'flame', (f.x >= h.x) ? 1 : -1);
+            }
+          }
+        }
+      }
+      // 香蕉皮：敌方踩到 → 滑倒
+      if (h.type === 'banana') {
+        for (var fJ = 0; fJ < this.fighters.length; fJ++) {
+          var fj = this.fighters[fJ];
+          if (fj === h.owner || !fj.canBeHit()) continue;
+          if (fj.onGround && Math.abs(fj.x - h.x) < 42) {
+            fj.takeHit(h.owner, { damage: 13, hitstun: 40, blockstun: 8, kbx: 0, kvy: -190 });
+            NL.FX.text(fj.x, fj.y - 150, '踩到香蕉皮！', { size: 28, color: '#FFE066', dur: 56 });
+            NL.SFX.play('duang');
+            NL.FX.cue(h.x, h.y - 6, 'poof', 1);
+            hs.splice(i, 1);
+            break;
+          }
+        }
+      }
+    }
+  };
+
+  Battle.prototype.drawHazards = function (ctx) {
+    var hs = this.hazards;
+    if (!hs) return;
+    for (var i = 0; i < hs.length; i++) {
+      var h = hs[i];
+      if (h.life < 70 && Math.floor(h.t / 6) % 2 === 1) continue;   // 快消失时闪烁
+      ctx.save();
+      ctx.translate(h.x, h.y);
+      if (h.type === 'banana') {
+        ctx.rotate(Math.sin(h.t * 0.03) * 0.06);
+        ctx.fillStyle = '#FFE066';
+        ctx.strokeStyle = '#B98A2A';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-24, 6);
+        ctx.quadraticCurveTo(0, -16, 24, 6);
+        ctx.quadraticCurveTo(0, 0, -24, 6);
+        ctx.closePath();
+        ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#8A6A10';
+        ctx.beginPath(); ctx.arc(-24, 5, 3.2, 0, 6.3); ctx.fill();
+        ctx.beginPath(); ctx.arc(24, 5, 3.2, 0, 6.3); ctx.fill();
+      } else {
+        // 酒水渍
+        ctx.fillStyle = h.burning ? 'rgba(90,70,50,0.85)' : 'rgba(140,170,205,0.78)';
+        U.ellipse(ctx, 0, 2, 52, 12);
+        ctx.fill();
+        ctx.fillStyle = h.burning ? 'rgba(255,150,60,0.5)' : 'rgba(235,245,255,0.5)';
+        U.ellipse(ctx, -14, 0, 16, 4.5);
+        ctx.fill();
+        U.ellipse(ctx, 16, 4, 10, 3.2);
+        ctx.fill();
+        if (h.burning) {
+          for (var k = 0; k < 3; k++) {
+            var fx = -30 + k * 30;
+            var fl = 20 + Math.sin(h.t * 0.4 + k * 2) * 7;
+            ctx.fillStyle = (k % 2) ? 'rgba(255,159,67,0.9)' : 'rgba(255,217,59,0.9)';
+            ctx.beginPath();
+            ctx.moveTo(fx - 9, 0);
+            ctx.quadraticCurveTo(fx - 3, -fl * 0.7, fx, -fl);
+            ctx.quadraticCurveTo(fx + 3, -fl * 0.7, fx + 9, 0);
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+      }
+      ctx.restore();
+    }
+  };
+
+  Battle.prototype.spawnDecoy = function (x, y, facing) {
+    if (!this.decoys) this.decoys = [];
+    this.decoys.push({ x: x, y: y, facing: facing || 1, t: 0, life: 34 });
+  };
+
+  Battle.prototype.updateDecoys = function () {
+    var ds = this.decoys;
+    if (!ds) return;
+    for (var i = ds.length - 1; i >= 0; i--) {
+      ds[i].t++;
+      if (ds[i].t >= ds[i].life) ds.splice(i, 1);
+    }
+  };
+
+  Battle.prototype.drawDecoys = function (ctx) {
+    var ds = this.decoys;
+    if (!ds) return;
+    for (var i = 0; i < ds.length; i++) {
+      var d2 = ds[i];
+      var k = 1 - d2.t / d2.life;
+      ctx.save();
+      ctx.translate(d2.x, d2.y);
+      ctx.globalAlpha = Math.min(1, k * 2.2);
+      // 木桩替身
+      ctx.fillStyle = '#B98A5A';
+      ctx.strokeStyle = '#7A5230';
+      ctx.lineWidth = 4;
+      U.roundRectPath(ctx, -20, -96, 40, 96, 12);
+      ctx.fill(); ctx.stroke();
+      ctx.strokeStyle = 'rgba(122,82,48,0.7)';
+      ctx.lineWidth = 2.5;
+      for (var r2 = 0; r2 < 3; r2++) {
+        ctx.beginPath();
+        ctx.arc(0, -78 + r2 * 26, 12, 0.3, Math.PI - 0.3);
+        ctx.stroke();
+      }
+      // 小树叶
+      ctx.fillStyle = '#7BCB6F';
+      ctx.strokeStyle = '#4E9B48';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(6, -102, 16, 9, -0.35, 0, 6.3);
+      ctx.fill(); ctx.stroke();
+      if (d2.t < 12 && Math.floor(d2.t / 3) % 2 === 0) {
+        ctx.globalAlpha *= 0.7;
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.beginPath(); ctx.arc(-24, -60, 9, 0, 6.3); ctx.fill();
+        ctx.beginPath(); ctx.arc(26, -44, 7, 0, 6.3); ctx.fill();
+      }
+      ctx.restore();
+    }
+  };
+
+  /* 酒瓶碎裂 → 一地水渍 */
+  Battle.prototype.shatterBottle = function (p, hitX) {
+    var x = U.clamp(hitX || p.x, NL.WALL_L + 40, NL.WALL_R - 40);
+    this.spawnHazard({ type: 'puddle', x: x, owner: p.owner });
+    NL.SFX.play('splash');
+    NL.FX.cue(x, NL.GROUND - 12, 'splash', 1);
+    NL.FX.cue(x + 16, NL.GROUND - 8, 'splash', -1);
+  };
+
+  /* 巨型香蕉落地 → 大震屏 + 摔成三根香蕉皮 */
+  Battle.prototype.shatterGiantBanana = function (p, hitX) {
+    var x = U.clamp(hitX || p.x, NL.WALL_L + 60, NL.WALL_R - 60);
+    NL.FX.shake(16);
+    NL.FX.flash(8, '#FFF7C2');
+    NL.SFX.play('hitBig');
+    for (var k = 0; k < 3; k++) {
+      this.spawnHazard({ type: 'banana', x: x + (k - 1) * 76, owner: p.owner });
+    }
+    NL.FX.cue(x, NL.GROUND - 14, 'poof', 1);
+    NL.FX.cue(x - 30, NL.GROUND - 10, 'poof', -1);
+    NL.FX.cue(x + 30, NL.GROUND - 10, 'poof', 1);
+  };
+
+  /* ================= v0.12：新弹道绘制（返回 true 表示已处理） ================= */
+  Battle.prototype.drawProjExtra = function (ctx, p, dir) {
+    var t = p.t;
+    if (p.type === 'banana') {
+      ctx.rotate(t * 0.22 * dir);
+      ctx.fillStyle = '#FFE066';
+      ctx.strokeStyle = '#B98A2A';
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.moveTo(-26, 0);
+      ctx.quadraticCurveTo(0, -34, 26, 0);
+      ctx.quadraticCurveTo(0, -8, -26, 0);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#8A6A10';
+      ctx.beginPath(); ctx.arc(-26, 0, 3.4, 0, 6.3); ctx.fill();
+      ctx.beginPath(); ctx.arc(26, 0, 3.4, 0, 6.3); ctx.fill();
+      return true;
+    }
+    if (p.type === 'giantbanana') {
+      ctx.rotate(Math.sin(t * 0.1) * 0.12);
+      ctx.fillStyle = '#FFE066';
+      ctx.strokeStyle = '#B98A2A';
+      ctx.lineWidth = 7;
+      ctx.beginPath();
+      ctx.moveTo(-88, 6);
+      ctx.quadraticCurveTo(0, -120, 88, 6);
+      ctx.quadraticCurveTo(0, -30, -88, 6);
+      ctx.closePath();
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#8A6A10';
+      ctx.beginPath(); ctx.arc(-88, 6, 9, 0, 6.3); ctx.fill();
+      ctx.beginPath(); ctx.arc(88, 6, 9, 0, 6.3); ctx.fill();
+      ctx.strokeStyle = 'rgba(255,246,216,0.8)';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-60, -18);
+      ctx.quadraticCurveTo(0, -74, 60, -18);
+      ctx.stroke();
+      return true;
+    }
+    if (p.type === 'rollmelon') {
+      ctx.rotate(t * 0.3 * dir);
+      ctx.fillStyle = '#6FBF5A';
+      ctx.strokeStyle = '#3F7D33';
+      ctx.lineWidth = 4;
+      U.ellipse(ctx, 0, 0, 26, 20);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(190,240,160,0.65)';
+      for (var b3 = 0; b3 < 5; b3++) {
+        var ba = b3 * 1.26 + t * 0.3;
+        ctx.beginPath();
+        ctx.arc(Math.cos(ba) * 13, Math.sin(ba) * 9, 4.2, 0, 6.3);
+        ctx.fill();
+      }
+      ctx.fillStyle = '#8FBF6A';
+      ctx.beginPath(); ctx.arc(0, 0, 6, 0, 6.3); ctx.fill();
+      return true;
+    }
+    if (p.type === 'laser' || p.type === 'laser3') {
+      var isB = (p.type === 'laser3');
+      var len = isB ? 330 : 240;
+      ctx.rotate(Math.atan2(p.vy, p.vx));
+      // 外发光
+      ctx.fillStyle = 'rgba(255,70,70,0.30)';
+      ctx.beginPath();
+      ctx.moveTo(-len, -p.r * 1.6);
+      ctx.lineTo(34, -p.r * 0.8);
+      ctx.lineTo(34, p.r * 0.8);
+      ctx.lineTo(-len, p.r * 1.6);
+      ctx.closePath();
+      ctx.fill();
+      // 主光束
+      var grad = ctx.createLinearGradient(-len, 0, 26, 0);
+      grad.addColorStop(0, 'rgba(255,60,60,0.25)');
+      grad.addColorStop(0.45, 'rgba(255,60,60,0.85)');
+      grad.addColorStop(1, 'rgba(255,235,235,0.98)');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(-len, -p.r);
+      ctx.lineTo(30, -p.r * 0.45);
+      ctx.lineTo(30, p.r * 0.45);
+      ctx.lineTo(-len, p.r);
+      ctx.closePath();
+      ctx.fill();
+      // 白热核心
+      ctx.fillStyle = 'rgba(255,255,255,0.95)';
+      U.roundRectPath(ctx, -len * 0.55, -p.r * 0.32, len * 0.6, p.r * 0.64, p.r * 0.32);
+      ctx.fill();
+      // 枪口闪光
+      ctx.fillStyle = 'rgba(255,80,80,0.95)';
+      ctx.beginPath(); ctx.arc(24, 0, p.r * 0.7, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath(); ctx.arc(24, 0, p.r * 0.36, 0, 6.3); ctx.fill();
+      return true;
+    }
+    if (p.type === 'soundwave') {
+      var rr = p.r;
+      for (var w = 0; w < 3; w++) {
+        var ph = (t * 0.12 + w * 0.33) % 1;
+        ctx.strokeStyle = 'rgba(143,224,255,' + (0.85 - ph * 0.6).toFixed(2) + ')';
+        ctx.lineWidth = 5 - w;
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(4, rr * (0.4 + ph * 0.75)), -1.35, 1.35);
+        ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(200,240,255,0.4)';
+      ctx.beginPath(); ctx.arc(0, 0, rr * 0.42, 0, 6.3); ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 ' + Math.round(rr * 0.6) + 'px "Microsoft YaHei", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('啊', 0, 1);
+      return true;
+    }
+    if (p.type === 'screenwave') {
+      var rw2 = p.r;
+      for (var v = 0; v < 4; v++) {
+        var ph2 = (t * 0.05 + v * 0.25) % 1;
+        ctx.strokeStyle = 'rgba(191,233,255,' + (0.9 - ph2 * 0.65).toFixed(2) + ')';
+        ctx.lineWidth = 9 - v * 1.6;
+        ctx.beginPath();
+        ctx.arc(0, 0, Math.max(10, rw2 * (0.5 + ph2 * 0.6)), -1.5, 1.5);
+        ctx.stroke();
+      }
+      ctx.fillStyle = 'rgba(220,245,255,0.25)';
+      ctx.beginPath();
+      ctx.arc(0, 0, rw2 * 0.9, -1.5, 1.5);
+      ctx.closePath();
+      ctx.fill();
+      return true;
+    }
+    if (p.type === 'winebottle') {
+      ctx.rotate(t * 0.24 * dir);
+      ctx.fillStyle = '#2E6B4F';
+      ctx.strokeStyle = '#1C4531';
+      ctx.lineWidth = 3.5;
+      U.roundRectPath(ctx, -13, -8, 26, 34, 7);
+      ctx.fill(); ctx.stroke();
+      U.roundRectPath(ctx, -5, -26, 10, 20, 3);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#E8D8A8';
+      U.roundRectPath(ctx, -11, 2, 22, 14, 3);
+      ctx.fill();
+      ctx.fillStyle = '#C0392B';
+      ctx.beginPath(); ctx.arc(0, 9, 4.2, 0, 6.3); ctx.fill();
+      return true;
+    }
+    if (p.type === 'chalk') {
+      ctx.rotate(-0.3 * dir);
+      ctx.fillStyle = '#FDFDF6';
+      ctx.strokeStyle = '#B9B9A8';
+      ctx.lineWidth = 2.5;
+      U.roundRectPath(ctx, -11, -5, 22, 10, 4);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.beginPath(); ctx.arc(-16, 2, 3, 0, 6.3); ctx.fill();
+      ctx.beginPath(); ctx.arc(-22, 5, 2, 0, 6.3); ctx.fill();
+      return true;
+    }
+    if (p.type === 'eraser') {
+      ctx.rotate(t * 0.34 * dir);
+      ctx.fillStyle = '#4A5A66';
+      ctx.strokeStyle = '#2E3A42';
+      ctx.lineWidth = 3.5;
+      U.roundRectPath(ctx, -20, -14, 40, 28, 6);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#DDE4E8';
+      U.roundRectPath(ctx, -20, -14, 40, 9, 5);
+      ctx.fill();
+      ctx.fillStyle = 'rgba(240,240,230,0.75)';
+      U.roundRectPath(ctx, -12, 1, 22, 8, 4);
+      ctx.fill();
+      return true;
+    }
+    if (p.type === 'blackboard') {
+      ctx.rotate(Math.sin(t * 0.08) * 0.05);
+      ctx.fillStyle = '#8A6A3B';
+      ctx.strokeStyle = '#5A4318';
+      ctx.lineWidth = 5;
+      U.roundRectPath(ctx, -96, -62, 192, 124, 6);
+      ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#2F4A3C';
+      U.roundRectPath(ctx, -88, -54, 176, 108, 3);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(-70, -30); ctx.lineTo(-20, -30);
+      ctx.moveTo(-70, -12); ctx.lineTo(-34, -12);
+      ctx.moveTo(26, 10); ctx.lineTo(70, 10);
+      ctx.moveTo(10, 28); ctx.lineTo(70, 28);
+      ctx.stroke();
+      return true;
+    }
+    if (p.type === 'firestrip' || p.type === 'bigfire') {
+      var rectW = p.def.rect.w, rectH = p.def.rect.h;
+      var hw = rectW / 2, hh = rectH / 2;
+      var isBig2 = (p.type === 'bigfire');
+      var fg = ctx.createLinearGradient(0, hh, 0, -hh);
+      fg.addColorStop(0, 'rgba(255,120,40,0.85)');
+      fg.addColorStop(0.6, 'rgba(255,180,60,0.75)');
+      fg.addColorStop(1, 'rgba(255,240,160,0.15)');
+      ctx.fillStyle = fg;
+      ctx.beginPath();
+      ctx.moveTo(-hw, hh);
+      ctx.quadraticCurveTo(-hw * 0.55, -hh * (0.85 + Math.sin(t * 0.5) * 0.15), 0, -hh * (0.95 + Math.sin(t * 0.42 + 2) * 0.2));
+      ctx.quadraticCurveTo(hw * 0.55, -hh * (0.85 + Math.sin(t * 0.47 + 4) * 0.15), hw, hh);
+      ctx.closePath();
+      ctx.fill();
+      for (var fi = 0; fi < (isBig2 ? 9 : 5); fi++) {
+        var nTong = isBig2 ? 9 : 5;
+        var fx2 = -hw + (fi + 0.5) * (rectW / nTong);
+        var fl2 = hh * (0.7 + 0.5 * Math.sin(t * 0.55 + fi * 1.9));
+        ctx.fillStyle = (fi % 2) ? 'rgba(255,159,67,0.9)' : 'rgba(255,217,59,0.9)';
+        ctx.beginPath();
+        ctx.moveTo(fx2 - 14, hh);
+        ctx.quadraticCurveTo(fx2 - 5, -fl2 * 0.8, fx2, -fl2);
+        ctx.quadraticCurveTo(fx2 + 5, -fl2 * 0.8, fx2 + 14, hh);
+        ctx.closePath();
+        ctx.fill();
+      }
+      return true;
+    }
+    return false;
   };
 
   NL.Battle = Battle;

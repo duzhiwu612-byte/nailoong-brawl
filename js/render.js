@@ -652,6 +652,19 @@ var NL = window.NL = window.NL || {};
     ctx.arc(ex, ey, 12.5, 0, 6.3);
     ctx.fill();
     ctx.stroke();
+    return { ex: ex, ey: ey };
+  }
+
+  /* v0.12：照片手部贴图（九一：原图的手保留） */
+  function drawPhotoHand(ctx, ch, paw, big) {
+    var rec = ch.photoHand && NL.headImg && NL.headImg[ch.photoHand];
+    if (!rec || !rec.ok || !paw) return;
+    var hw = big ? 44 : 38;
+    var hh = hw * (rec.img.height / rec.img.width);
+    ctx.save();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(rec.img, paw.ex - hw * 0.5, paw.ey - hh * 0.58, hw, hh);
+    ctx.restore();
   }
 
   function drawLeg(ctx, pose, side, pal, bs, C) {
@@ -678,6 +691,18 @@ var NL = window.NL = window.NL || {};
   }
 
   /* ================= 主体 ================= */
+  /* v0.12：香蕉身体轮廓（苦瓜专属，围绕肚皮锚点） */
+  function bananaPath(ctx, b, bs) {
+    var x = b.x, y = b.y;
+    var w = b.rx * 2.05, h = b.ry * 2.1;
+    ctx.beginPath();
+    ctx.moveTo(x - w * 0.34, y + h * 0.42);
+    ctx.bezierCurveTo(x - w * 0.62, y + h * 0.02, x - w * 0.52, y - h * 0.44, x + w * 0.02, y - h * 0.52);
+    ctx.bezierCurveTo(x + w * 0.5, y - h * 0.6, x + w * 0.62, y - h * 0.02, x + w * 0.42, y + h * 0.36);
+    ctx.bezierCurveTo(x + w * 0.32, y + h * 0.54, x - w * 0.08, y + h * 0.56, x - w * 0.34, y + h * 0.42);
+    ctx.closePath();
+  }
+
   function drawFighter(ctx, f, t) {
     var ch = f.char, pal = ch.pal;
     var hs = ch.headScale || 1;
@@ -745,17 +770,19 @@ var NL = window.NL = window.NL || {};
     // 背饰
     if (ch.decorBack) ch.decorBack(ctx, a, f, t);
 
-    // 尾巴
-    var wag = Math.sin(t * 0.1 + (f.seed || 0)) * 4;
-    U.limb(ctx, -54 * bs, -40 * bs, -88 * bs + wag * 0.5, -14 * bs + wag, 13 * bs,
-      C(shade(pal.body, 0.96)), ol, 6.5);
-    ctx.fillStyle = C(shade(pal.body, 0.96));
-    ctx.strokeStyle = ol;
-    ctx.lineWidth = 3.5;
-    ctx.beginPath();
-    ctx.arc(-88 * bs + wag * 0.5, -14 * bs + wag, 9.5 * bs, 0, 6.3);
-    ctx.fill();
-    ctx.stroke();
+    // 尾巴（香蕉角色没有尾巴）
+    if (ch.bodyKind !== 'banana') {
+      var wag = Math.sin(t * 0.1 + (f.seed || 0)) * 4;
+      U.limb(ctx, -54 * bs, -40 * bs, -88 * bs + wag * 0.5, -14 * bs + wag, 13 * bs,
+        C(shade(pal.body, 0.96)), ol, 6.5);
+      ctx.fillStyle = C(shade(pal.body, 0.96));
+      ctx.strokeStyle = ol;
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.arc(-88 * bs + wag * 0.5, -14 * bs + wag, 9.5 * bs, 0, 6.3);
+      ctx.fill();
+      ctx.stroke();
+    }
 
     // 犄角（画在头后面，底部藏进身体；像素大头照角色不画）
     if (!useHeadImg) {
@@ -772,23 +799,52 @@ var NL = window.NL = window.NL || {};
 
     // 后腿 / 后手
     drawLeg(ctx, pose, 'B', pal, bs, C);
-    drawArm(ctx, a, pose, 'B', pal, bs, C);
+    var pawB = drawArm(ctx, a, pose, 'B', pal, bs, C);
+    drawPhotoHand(ctx, ch, pawB, false);
 
     // ===== 一体化身体：先轮廓层（整体外轮廓），再填色层 =====
-    var blobs = [a.body, a.head, a.neck];
+    var isBanana = (ch.bodyKind === 'banana');
+    var blobs = isBanana ? [a.head, a.neck] : [a.body, a.head, a.neck];
     ctx.fillStyle = ol;
     ctx.strokeStyle = ol;
     ctx.lineWidth = 7.5;
     ctx.lineJoin = 'round';
+    if (isBanana) {
+      bananaPath(ctx, a.body, bs);
+      ctx.fill();
+      ctx.stroke();
+    }
     for (var bI = 0; bI < blobs.length; bI++) {
       U.ellipse(ctx, blobs[bI].x, blobs[bI].y, blobs[bI].rx, blobs[bI].ry);
       ctx.fill();
       ctx.stroke();
     }
     ctx.fillStyle = bodyGrad;
+    if (isBanana) {
+      bananaPath(ctx, a.body, bs);
+      ctx.fill();
+    }
     for (var bJ = 0; bJ < blobs.length; bJ++) {
       U.ellipse(ctx, blobs[bJ].x, blobs[bJ].y, blobs[bJ].rx, blobs[bJ].ry);
       ctx.fill();
+    }
+    // 香蕉细节：两端蕉尖 + 奶油高光
+    if (isBanana) {
+      ctx.fillStyle = '#8A6A10';
+      U.ellipse(ctx, a.body.x - a.body.rx * 0.42, a.body.y + a.body.ry * 0.86, 8 * bs, 6 * bs);
+      ctx.fill();
+      U.ellipse(ctx, a.body.x + a.body.rx * 0.5, a.body.y - a.body.ry * 0.98, 8 * bs, 6 * bs);
+      ctx.fill();
+      ctx.save();
+      ctx.globalAlpha = 0.5;
+      ctx.strokeStyle = '#FFF6D8';
+      ctx.lineWidth = 5 * bs;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(a.body.x - a.body.rx * 0.42, a.body.y + a.body.ry * 0.5);
+      ctx.quadraticCurveTo(a.body.x - a.body.rx * 0.72, a.body.y, a.body.x - a.body.rx * 0.35, a.body.y - a.body.ry * 0.6);
+      ctx.stroke();
+      ctx.restore();
     }
 
     // 头顶高光（像素大头照角色跳过）
@@ -804,16 +860,18 @@ var NL = window.NL = window.NL || {};
       ctx.restore();
     }
 
-    // 肚皮（更大更圆，贴近原画的奶油大肚子占比）
-    ctx.fillStyle = C(pal.belly);
-    U.ellipse(ctx, a.body.x + 12 * bs, a.body.y + 4 * bs, 50 * bs, 44 * bs);
-    ctx.fill();
-    ctx.save();
-    ctx.globalAlpha = 0.35;
-    ctx.fillStyle = '#FFFFFF';
-    U.ellipse(ctx, a.body.x + 21 * bs, a.body.y - 9 * bs, 12 * bs, 8 * bs);
-    ctx.fill();
-    ctx.restore();
+    // 肚皮（更大更圆，贴近原画的奶油大肚子占比；香蕉角色跳过）
+    if (!isBanana) {
+      ctx.fillStyle = C(pal.belly);
+      U.ellipse(ctx, a.body.x + 12 * bs, a.body.y + 4 * bs, 50 * bs, 44 * bs);
+      ctx.fill();
+      ctx.save();
+      ctx.globalAlpha = 0.35;
+      ctx.fillStyle = '#FFFFFF';
+      U.ellipse(ctx, a.body.x + 21 * bs, a.body.y - 9 * bs, 12 * bs, 8 * bs);
+      ctx.fill();
+      ctx.restore();
+    }
 
     // 前腿
     drawLeg(ctx, pose, 'F', pal, bs, C);
@@ -826,7 +884,8 @@ var NL = window.NL = window.NL || {};
     }
 
     // 前手
-    drawArm(ctx, a, pose, 'F', pal, bs, C);
+    var pawF = drawArm(ctx, a, pose, 'F', pal, bs, C);
+    drawPhotoHand(ctx, ch, pawF, true);
 
     // 防御光盾
     if (f.state === 'block') {
